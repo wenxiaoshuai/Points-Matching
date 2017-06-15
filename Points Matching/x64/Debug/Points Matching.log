@@ -1,7 +1,5 @@
 ﻿  main.cpp
 c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(58): warning C4566: character represented by universal-character-name '\uFF1A' cannot be represented in the current code page (1252)
 c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(59): warning C4566: character represented by universal-character-name '\uFF1A' cannot be represented in the current code page (1252)
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(110): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(112): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
   Points Matching.vcxproj -> C:\Users\xli22\documents\visual studio 2015\Projects\Points Matching\x64\Debug\Points Matching.exe
   Points Matching.vcxproj -> C:\Users\xli22\documents\visual studio 2015\Projects\Points Matching\x64\Debug\Points Matching.pdb (Full PDB)
