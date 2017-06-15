@@ -9,10 +9,10 @@ using namespace std;
 int main()
 {
 	//Read images.
-	Mat image01 = imread("img01.jpg");
-	Mat image02 = imread("img02.jpg");
-	//Mat image01 = imread("img1.bmp");
-	//Mat image02 = imread("img2.bmp");
+	//Mat image01 = imread("img01.jpg");
+	//Mat image02 = imread("img02.jpg");
+	Mat image01 = imread("img1.bmp");
+	Mat image02 = imread("img2.bmp");
 	Mat image1, image2;
 	Mat img1, img2;
 	image1 = image01.clone();
@@ -121,7 +121,8 @@ int main()
 	}
 
 	cout << "The average value is  " << sum / goodMatchePoints.size() << endl;
-	/*
+	
+
 	// draw the left points corresponding epipolar lines in right image
 	std::vector<cv::Vec3f> lines1;
 	cv::computeCorrespondEpilines(
@@ -140,7 +141,7 @@ int main()
 			cv::Scalar(255, 255, 255));
 	}
 	imshow("Image Epilines", img2);
-	*/
+	
 	waitKey();
 	return 0;
 }
