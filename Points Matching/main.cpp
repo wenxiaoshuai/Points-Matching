@@ -9,10 +9,13 @@ using namespace std;
 int main()
 {
 	//Read images.
-	//Mat image01 = imread("img01.jpg");
-	//Mat image02 = imread("img02.jpg");
-	Mat image01 = imread("img1.bmp");
-	Mat image02 = imread("img2.bmp");
+	Mat image01 = imread("ColorImage1.jpg");
+	Mat image02 = imread("ColorImage2.jpg");
+	//Mat image01 = imread("img1.bmp");
+	//Mat image02 = imread("img2.bmp");
+	Mat depth01 = imread("DepthImage1.jpg");
+	Mat depth02 = imread("DepthImage2.jpg");
+	//	cout << (int)depth02.at<uchar>(1418, 975) << endl;
 	Mat image1, image2;
 	Mat img1, img2;
 	image1 = image01.clone();
@@ -20,7 +23,7 @@ int main()
 	img1 = image01.clone();
 	img2 = image02.clone();
 	//Extracting SURF feature.    
-	SurfFeatureDetector surfDetector(5000);  //Set hessianThreshold  
+	SurfFeatureDetector surfDetector(6000);  //Set hessianThreshold  
 	vector<KeyPoint> keyPoint1, keyPoint2;
 	surfDetector.detect(image1, keyPoint1);
 	surfDetector.detect(image2, keyPoint2);
@@ -91,6 +94,10 @@ int main()
 		{
 			goodMatchePoints.erase(goodMatchePoints.begin() + i);
 		}
+		else
+		{
+
+		}
 	}
 
 	vector<int> pointIndexes1;
@@ -111,11 +118,38 @@ int main()
 		pointIndexes2.clear();
 		int num = goodMatchePoints.size();
 		cout << "size is: " << num << endl;
+		int nums = 0;
 		for (int i = 0; i < goodMatchePoints.size(); i++)
 		{
 			printf("-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, goodMatchePoints[i].queryIdx, goodMatchePoints[i].trainIdx);
-			pointIndexes1.push_back(goodMatchePoints[i].queryIdx);
-			pointIndexes2.push_back(goodMatchePoints[i].trainIdx);
+			int x1 = keyPoint1[goodMatchePoints[i].queryIdx].pt.x;
+			int y1 = keyPoint1[goodMatchePoints[i].queryIdx].pt.y;
+			int x2 = keyPoint2[goodMatchePoints[i].trainIdx].pt.x;
+			int y2 = keyPoint2[goodMatchePoints[i].trainIdx].pt.y;
+			int depth1 = 0;
+			int depth2 = 0;
+			if ((int)depth01.at<uchar>(y1, x1) != 255)
+			{
+				depth1 = (int)depth01.at<Vec3b>(y1, x1)[2] * 1000 + (int)depth01.at<Vec3b>(y1, x1)[1] * 100 + (int)depth01.at<Vec3b>(y1, x1)[0];
+				if (depth1 > 4500)
+					depth1 = 0;
+				//cout << (int)depth01.at<Vec3b>(y1, x1)[2] << "   " << (int)depth01.at<Vec3b>(y1, x1)[1] << "   " << (int)depth01.at<Vec3b>(y1, x1)[0] << endl;
+			}
+			if ((int)depth02.at<uchar>(y2, x2) != 255)
+			{
+				depth2 = (int)depth02.at<Vec3b>(y2, x2)[2] * 1000 + (int)depth02.at<Vec3b>(y2, x2)[1] * 100 + (int)depth02.at<Vec3b>(y2, x2)[0];
+				if (depth2 > 4500)
+					depth2 = 0;
+			}
+			if (depth1 > 500 && depth2 > 500)
+			{
+				nums++;
+				cout << "Num " << nums << "    depth1 = " << depth1 << "  depth2= " << depth2 << endl;
+				pointIndexes1.push_back(goodMatchePoints[i].queryIdx);
+				pointIndexes2.push_back(goodMatchePoints[i].trainIdx);
+			}
+
+
 		}
 
 		//Using 8-Points Algorithm to obtain Fundamental Matrix.
@@ -139,6 +173,7 @@ int main()
 		Mat temp2 = Mat::zeros(3, 1, CV_64F);
 		Mat result;
 		//cout << selPoints1[0].x << endl;
+
 		for (int i = 0; i < goodMatchePoints.size(); i++)
 		{
 			temp1.at<double>(0, 0) = keyPoint1[goodMatchePoints[i].queryIdx].pt.x;
@@ -157,9 +192,10 @@ int main()
 				goodMatchePoints.erase(goodMatchePoints.begin() + i);
 			}
 		}
+
 		cout << "The average value is  " << sum / num << endl;
 		cout << "iter num is: " << iternum << endl;
-		if (iternum > 20 || threshold == sum / num || goodMatchePoints.size()<8)
+		if (iternum > 20 || threshold == sum / num || goodMatchePoints.size() < 8)
 			break;
 		threshold = sum / num;
 
