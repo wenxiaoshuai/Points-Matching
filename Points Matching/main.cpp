@@ -3,9 +3,31 @@
 #include "opencv2/nonfree/nonfree.hpp"    
 #include "opencv2/legacy/legacy.hpp"   
 #include <iostream>  
+#include "math.h"
 
 using namespace cv;
 using namespace std;
+
+
+vector<int> randvec(int Num)
+{
+	vector<int> temp;
+	int* array = new int[Num];
+	for (int i = 0; i < Num; i++)
+	{
+		array[i] = -1;
+	}
+	while (temp.size() < 8)
+	{
+		int n = rand() % (Num + 1);
+		if (array[n] == -1)
+		{
+			temp.push_back(n);
+			array[n] = 1;
+		}
+	}
+	return temp;
+}
 
 void SelectMatching(vector<DMatch> matchPoints, vector<DMatch> matchPoints2, vector<DMatch>* goodMatchePoints)
 {
@@ -21,52 +43,87 @@ void SelectMatching(vector<DMatch> matchPoints, vector<DMatch> matchPoints2, vec
 	cout << "The Best Match is： " << minMatch << endl;
 	cout << "The Worst Match is： " << maxMatch << endl;
 
-	vector<DMatch> tempMatchePoints;
+	//vector<DMatch> tempMatchePoints;
+	//for (int i = 0; i < matchPoints.size(); i++)
+	//{
+	//	if (matchPoints[i].distance < minMatch + (maxMatch - minMatch) / 3)
+	//	{
+	//		tempMatchePoints.push_back(matchPoints[i]);
+	//	}
+	//}
+
+
+	//for (int i = 0; i < matchPoints.size(); i++)
+	//{
+	//	if (matchPoints[i].distance <= max(2 * minMatch, 0.05))
+	//	{
+	//		tempMatchePoints.push_back(matchPoints[i]);
+	//	}
+	//}
+
 	for (int i = 0; i < matchPoints.size(); i++)
 	{
-		if (matchPoints[i].distance < minMatch + (maxMatch - minMatch) / 3)
+		int match = matchPoints[i].trainIdx;
+		if (matchPoints2[match].trainIdx == matchPoints[i].queryIdx && matchPoints[i].distance < minMatch + (maxMatch - minMatch) / 3)
 		{
-			tempMatchePoints.push_back(matchPoints[i]);
+			(*goodMatchePoints).push_back(matchPoints[i]);
 		}
 	}
-
-	for (int i = 0; i < tempMatchePoints.size(); i++)
-	{
-		int match = tempMatchePoints[i].trainIdx;
-		if (matchPoints2[match].trainIdx == tempMatchePoints[i].queryIdx)
-		{
-			(*goodMatchePoints).push_back(tempMatchePoints[i]);
-		}
-	}
+	std::nth_element((*goodMatchePoints).begin(), (*goodMatchePoints).begin() + 7, (*goodMatchePoints).end());
+	(*goodMatchePoints).erase((*goodMatchePoints).begin() + 8, (*goodMatchePoints).end());
 }
 void FilterMatching(vector<KeyPoint> keyPoint1, vector<KeyPoint> keyPoint2, vector<DMatch>* MatchePoints)
 {
 	//Get rid of the noise matches.
 	double slopesum = 0;
+	double lengthsum = 0;
 	double avgslope = 0;
+	double avglength = 0;
 	int num = (*MatchePoints).size();
-	for (int i = 0; i < (*MatchePoints).size(); i++)
+	int m = 0;
+	for (int i = 0; i < num; i++)
 	{
 		int temp1 = (*MatchePoints)[i].queryIdx;
 		int temp2 = (*MatchePoints)[i].trainIdx;
 		Point point1 = keyPoint1[temp1].pt;
 		Point point2 = keyPoint2[temp2].pt;
-		double tempslope = (double)(point2.y - point1.y) / (double)(point2.x + 1080 - point1.x);//1080 here is the width of the image.Change it when applied in Kinect.
-		slopesum += tempslope;
-	}
-	avgslope = slopesum / num;
-	int nn = 0;
-	for (int i = 0; i < (*MatchePoints).size(); i++)
-	{
-		int temp1 = (*MatchePoints)[i].queryIdx;
-		int temp2 = (*MatchePoints)[i].trainIdx;
-		Point point1 = keyPoint1[temp1].pt;
-		Point point2 = keyPoint2[temp2].pt;
-		double tempslope = (double)(point2.y - point1.y) / (double)(point2.x + 1080 - point1.x);
-		cout << avgslope + abs(avgslope) << " " << avgslope - abs(avgslope) << endl;
-		if (tempslope < avgslope + 2*abs(avgslope) && tempslope > avgslope - 2*abs(avgslope))
+		double tempslope = (double)(point2.y - point1.y) / (double)(point2.x + 1920 - point1.x);//1920 here is the width of the image.Change it when applied in Kinect.
+		double x = (point2.x + 1920 - point1.x)*(point2.x + 1920 - point1.x);
+		double y = (point2.y - point1.y)*(point2.y - point1.y);
+		double templength = sqrt(x + y);
+		cout << "Match " << i << ", slope= " << tempslope << ", length=" << templength << endl;
+		if (tempslope < 0)
 		{
-			(*MatchePoints).erase((*MatchePoints).begin() + i - nn);
+			slopesum += tempslope;
+			m++;
+		}
+		lengthsum += templength;
+	}
+	avgslope = slopesum / m;
+	avglength = lengthsum / num;
+	cout << "Average: " << "slope= " << avgslope << ", length=" << avglength << endl;
+	int nn = 0;
+	for (int i = 0; i < num; i++)
+	{
+		int temp1 = (*MatchePoints)[i - nn].queryIdx;
+		int temp2 = (*MatchePoints)[i - nn].trainIdx;
+		Point point1 = keyPoint1[temp1].pt;
+		Point point2 = keyPoint2[temp2].pt;
+		double tempslope = (double)(point2.y - point1.y) / (double)(point2.x + 1920 - point1.x);
+		double x = (point2.x + 1920 - point1.x)*(point2.x + 1920 - point1.x);
+		double y = (point2.y - point1.y)*(point2.y - point1.y);
+		double templength = sqrt(x + y);
+		int flag1 = 0;
+		int flag2 = 0;
+		if (tempslope < avgslope + abs(avgslope) && tempslope > avgslope - abs(avgslope))
+			flag1 = 1;
+		if (templength<avglength + 0.2*abs(avglength) && templength>avglength - 0.2*abs(avglength))
+			flag2 = 1;
+		if (flag1 == 0 || flag2 == 0)
+		{
+			cout << "Delete Num " << (i - nn) << " Values are: length=" << templength << ", slope=" << tempslope << endl;
+			(*MatchePoints).erase((*MatchePoints).begin() + (i - nn));
+			nn++;
 		}
 	}
 }
@@ -121,8 +178,85 @@ void function(Mat M, Mat R, Mat T, Mat* temp1, Mat* temp2)
 	(*temp2) = M*R*T;
 	Mat InverM = M.inv();
 	(*temp1) = M*R*InverM;
+
 }
 
+void ChooseRT(Mat R1, Mat R2, Mat T, Mat intrinsic, vector<cv::Point3d> Point1, vector<cv::Point3d> Point2)
+{
+	//Get Coeffcient Matrices.
+	Mat H1 = Mat::zeros(3, 3, CV_64F);
+	Mat H2 = Mat::zeros(3, 1, CV_64F);
+	int N = 0;
+	int MatchNum = -1;
+	double Loss = 99999;
+	int MatchIndex = -1;
+
+	//Validate the results.
+	while (N < 4)
+	{
+		if (N == 0)
+			function(intrinsic, R1, T, &H1, &H2);
+		if (N == 1)
+			function(intrinsic, R1, -T, &H1, &H2);
+		if (N == 2)
+			function(intrinsic, R2, T, &H1, &H2);
+		if (N == 3)
+			function(intrinsic, R2, -T, &H1, &H2);
+
+
+		int tempMatchNum = 0;
+		double tempLoss = 0;
+		cout << "===================================================" << endl;
+		cout << "                  Round " << N << endl;
+		cout << "===================================================" << endl;
+		for (int i = 0; i < Point1.size(); i++)
+		{
+			double u = Point1[i].x;
+			double v = Point1[i].y;
+			double d = Point1[i].z;
+			if (d > 500 && d < 5000)
+			{
+				double z = d / 1000;
+				cout << "(u,v,d) information" << endl;
+				cout << u << " " << v << " " << d << endl;
+				Mat p1 = Mat::zeros(3, 1, CV_64F);
+				Mat p2 = Mat::zeros(3, 1, CV_64F);
+				p1.at<double>(0, 0) = u;
+				p1.at<double>(1, 0) = v;
+				p1.at<double>(2, 0) = 1;
+				p2 = z*H1*p1 - H2;
+				//cout << "This is p2 " << p2.at<double>(0, 0) << " " << p2.at<double>(1, 0) << " " << p2.at<double>(2, 0) << endl;
+				double u1 = p2.at<double>(0, 0) / p2.at<double>(2, 0);
+				double v1 = p2.at<double>(1, 0) / p2.at<double>(2, 0);
+
+				//cout << "newpoint2 (u1,v1,d1) information" << endl;
+				cout << "newpoint2 " << Point2[i].x << " " << Point2[i].y << endl;
+				cout << "(u1,v1)  " << u1 << " " << v1 << endl;
+				cout << "-----------------------------------" << endl;
+
+				double temp1 = u1 - Point2[i].x;
+				double temp2 = v1 - Point2[i].y;
+				double weight = 0.3;
+				double loss = sqrt(weight*temp1*temp1 + (1 - weight)*temp2*temp2);
+				tempLoss += loss;
+				if (loss < 100)
+					tempMatchNum++;
+			}
+		}
+		cout << "Match Numer is " << tempMatchNum << endl;
+		cout << "Average Loss is " << tempLoss / Point1.size() << endl;
+		if (tempMatchNum >= MatchNum && tempLoss < Loss)
+		{
+			Loss = tempLoss;
+			MatchNum = tempMatchNum;
+			MatchIndex = N;
+		}
+		N++;
+	}
+	cout << "Final Decision:" << endl;
+	cout << "Case " << MatchIndex << ", Match Number is " << MatchNum << " ,Average Loss is " << Loss / Point1.size() << endl;
+
+}
 
 int main()
 {
@@ -140,6 +274,7 @@ int main()
 	image2 = image02.clone();
 	img1 = image01.clone();
 	img2 = image02.clone();
+
 	//Extracting SURF feature.    
 	SurfFeatureDetector surfDetector(6000);  //Set hessianThreshold  
 	vector<KeyPoint> keyPoint1, keyPoint2;
@@ -150,8 +285,8 @@ int main()
 	drawKeypoints(image1, keyPoint1, image1, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
 	drawKeypoints(image2, keyPoint2, image2, Scalar::all(-1), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 	drawKeypoints(img2, keyPoint2, img2, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
-	cv::imshow("KeyPoints of image1", image1);
-	cv::imshow("KeyPoints of image2", image2);
+	//cv::imshow("KeyPoints of image1", image1);
+	//cv::imshow("KeyPoints of image2", image2);
 
 
 	//Obtain the descriptors of the feature.
@@ -162,33 +297,40 @@ int main()
 
 	//Matching the features.  
 	FlannBasedMatcher matcher;
+	//BruteForceMatcher<L2<double>> matcher;
 	vector<DMatch> matchePoints, matchePoints2;
 	matcher.match(imageDesc1, imageDesc2, matchePoints, Mat());
 	matcher.match(imageDesc2, imageDesc1, matchePoints2, Mat());
 	vector<DMatch> goodMatchePoints;
 	SelectMatching(matchePoints, matchePoints2, &goodMatchePoints);
 	//Filtering the matching pairs.
-	FilterMatching(keyPoint1, keyPoint2, &goodMatchePoints);
+	//FilterMatching(keyPoint1, keyPoint2, &goodMatchePoints);
 
 	vector<int> pointIndexes1;
 	vector<int> pointIndexes2;
 	cout << "Good Matches are:" << endl;
+	for (int i = 0; i < goodMatchePoints.size(); i++)
+	{
+		printf("-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, goodMatchePoints[i].queryIdx, goodMatchePoints[i].trainIdx);
+	}
 
+	vector<DMatch> UsingMatches;
 	vector<cv::Point2f> selPoints1, selPoints2, newpoint1, newpoint2;
 	cv::Mat fundemental;
 	Mat EssentialMatrix;
 	int iternum = 0;
 	double threshold = 100;//At first, I wanna use a iteration to update the essential matrix.
-	//	while (true)
+	//while (true)
 	{
-		//iternum++;
-		//cout << "-----------------------------------------------------" << endl;
+		iternum++;
+		cout << "-----------------------------------------------------" << endl;
 		double sum = 0;
 
 		pointIndexes1.clear();
 		pointIndexes2.clear();
 		int num = goodMatchePoints.size();
 		cout << "size is: " << num << endl;
+		int n = 0;
 		int nums = 0;
 		/*
 		//Test Matches.
@@ -213,36 +355,63 @@ int main()
 		}
 		*/
 
+		//for (int i = 0; i < goodMatchePoints.size(); i++)
+		//{
+		//	printf("-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, goodMatchePoints[i].queryIdx, goodMatchePoints[i].trainIdx);
+		//	int x1 = keyPoint1[goodMatchePoints[i].queryIdx].pt.x;
+		//	int y1 = keyPoint1[goodMatchePoints[i].queryIdx].pt.y;
+		//	int x2 = keyPoint2[goodMatchePoints[i].trainIdx].pt.x;
+		//	int y2 = keyPoint2[goodMatchePoints[i].trainIdx].pt.y;
+		//	int depth1 = 0;
+		//	int depth2 = 0;
+		//	if ((int)depth01.at<uchar>(y1, x1) != 255)
+		//	{
+		//		depth1 = (int)depth01.at<Vec3b>(y1, x1)[2] * 1000 + (int)depth01.at<Vec3b>(y1, x1)[1] * 100 + (int)depth01.at<Vec3b>(y1, x1)[0];
+		//		if (depth1 > 5000)
+		//			depth1 = 0;
+		//		//cout << (int)depth01.at<Vec3b>(y1, x1)[2] << "   " << (int)depth01.at<Vec3b>(y1, x1)[1] << "   " << (int)depth01.at<Vec3b>(y1, x1)[0] << endl;
+		//	}
+		//	if ((int)depth02.at<uchar>(y2, x2) != 255)
+		//	{
+		//		depth2 = (int)depth02.at<Vec3b>(y2, x2)[2] * 1000 + (int)depth02.at<Vec3b>(y2, x2)[1] * 100 + (int)depth02.at<Vec3b>(y2, x2)[0];
+		//		if (depth2 > 5000)
+		//			depth2 = 0;
+		//	}
+		//	if (depth1 > 500 && depth2 > 500)
+		//	{
+		//		nums++;
+		//		cout << "Num " << nums << "    depth1 = " << depth1 << "  depth2= " << depth2 << endl;
+		//		pointIndexes1.push_back(goodMatchePoints[i].queryIdx);
+		//		pointIndexes2.push_back(goodMatchePoints[i].trainIdx);
+		//	}
+
+		//}
+
+		/*vector<int> random;
+		if (goodMatchePoints.size() > 8)
+			random = randvec(goodMatchePoints.size());
+		else
+		{
+			for (int i = 0; i < 8; i++)
+			{
+				random.push_back(i);
+			}
+		}
+
+
+		cout << "Using Matches are:" << endl;
+		for (int i = 0; i < 8; i++)
+		{
+			pointIndexes1.push_back(goodMatchePoints[random[i]].queryIdx);
+			pointIndexes2.push_back(goodMatchePoints[random[i]].trainIdx);
+			UsingMatches.push_back(goodMatchePoints[random[i]]);
+			printf("-- Using Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", random[i], UsingMatches[i].queryIdx, UsingMatches[i].trainIdx);
+		}*/
+
 		for (int i = 0; i < goodMatchePoints.size(); i++)
 		{
-			printf("-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, goodMatchePoints[i].queryIdx, goodMatchePoints[i].trainIdx);
-			int x1 = keyPoint1[goodMatchePoints[i].queryIdx].pt.x;
-			int y1 = keyPoint1[goodMatchePoints[i].queryIdx].pt.y;
-			int x2 = keyPoint2[goodMatchePoints[i].trainIdx].pt.x;
-			int y2 = keyPoint2[goodMatchePoints[i].trainIdx].pt.y;
-			int depth1 = 0;
-			int depth2 = 0;
-			if ((int)depth01.at<uchar>(y1, x1) != 255)
-			{
-				depth1 = (int)depth01.at<Vec3b>(y1, x1)[2] * 1000 + (int)depth01.at<Vec3b>(y1, x1)[1] * 100 + (int)depth01.at<Vec3b>(y1, x1)[0];
-				if (depth1 > 5000)
-					depth1 = 0;
-				//cout << (int)depth01.at<Vec3b>(y1, x1)[2] << "   " << (int)depth01.at<Vec3b>(y1, x1)[1] << "   " << (int)depth01.at<Vec3b>(y1, x1)[0] << endl;
-			}
-			if ((int)depth02.at<uchar>(y2, x2) != 255)
-			{
-				depth2 = (int)depth02.at<Vec3b>(y2, x2)[2] * 1000 + (int)depth02.at<Vec3b>(y2, x2)[1] * 100 + (int)depth02.at<Vec3b>(y2, x2)[0];
-				if (depth2 > 5000)
-					depth2 = 0;
-			}
-			if (depth1 > 500 && depth2 > 500)
-			{
-				nums++;
-				cout << "Num " << nums << "    depth1 = " << depth1 << "  depth2= " << depth2 << endl;
 				pointIndexes1.push_back(goodMatchePoints[i].queryIdx);
 				pointIndexes2.push_back(goodMatchePoints[i].trainIdx);
-			}
-
 		}
 
 
@@ -255,11 +424,11 @@ int main()
 		KeyPoint::convert(keyPoint2, selPoints2, pointIndexes2);
 
 
-		// Compute F matrix from 7 matches
+		// Compute F matrix from 8 matches
 		fundemental = cv::findFundamentalMat(
 			cv::Mat(selPoints1), // points in first image
 			cv::Mat(selPoints2), // points in second image
-			CV_FM_8POINT); // 7-point method
+			CV_FM_8POINT); // 8-point method
 
 		//Now we get the Fundamental Matrix F.
 
@@ -267,10 +436,8 @@ int main()
 		Mat temp2 = Mat::zeros(3, 1, CV_64F);
 		Mat result;
 		//cout << selPoints1[0].x << endl;
-
-
-
-		for (int i = 0; i < goodMatchePoints.size(); i++)
+		vector<double> results;
+		for (int i = 0; i < num; i++)
 		{
 			temp1.at<double>(0, 0) = keyPoint1[goodMatchePoints[i].queryIdx].pt.x;
 			temp1.at<double>(0, 1) = keyPoint1[goodMatchePoints[i].queryIdx].pt.y;
@@ -280,21 +447,26 @@ int main()
 			temp2.at<double>(2, 0) = 1;
 
 			result = temp1*fundemental*temp2;
-
-			//cout << "result = " << i << " " << result.at<double>(0, 0) << endl;
+			results.push_back(result.at<double>(0, 0));
+			cout << "result = " << i << " " << result.at<double>(0, 0) << endl;
 			sum += abs(result.at<double>(0, 0));
-			//if (result.at<double>(0, 0) > threshold)
-			//{
-			//	goodMatchePoints.erase(goodMatchePoints.begin() + i);
-			//}
 		}
-
+		//threshold = sum / num;
+		//int k = 0;
+		//for (int i = 0; i < num; i++)
+		//{
+		//	if (abs(results[i]) > threshold)
+		//	{
+		//		k = i - n;
+		//		goodMatchePoints.erase(goodMatchePoints.begin() + k);
+		//		n++;
+		//	}
+		//}
 
 		cout << "The average value is  " << sum / num << endl;
 		//cout << "iter num is: " << iternum << endl;
 		//if (iternum > 20 || threshold == sum / num || goodMatchePoints.size() < 8)
 		//	break;
-		//threshold = sum / num;
 
 		//find Essential Matrix.
 		Mat intrinsic = Mat::zeros(3, 3, CV_64F);
@@ -324,74 +496,67 @@ int main()
 		Mat Rotation2 = Mat::zeros(3, 3, CV_64F);
 		Mat Transit = Mat::zeros(3, 1, CV_64F);
 		SolveRt(EssentialMatrix, &Rotation1, &Rotation2, &Transit);
-		//Get Coeffcient Matrices.
-		Mat H1 = Mat::zeros(3, 3, CV_64F);
-		Mat H2 = Mat::zeros(3, 1, CV_64F);
-		function(intrinsic, Rotation1, -Transit, &H1, &H2);
 
-		/*
-		Mat showimg = image02.clone();
-		for (int j = 0; j < depth01.rows; j++)
-			for (int i = 0; i < depth01.cols; i++)
-			{
-				double d = (int)depth01.at<Vec3b>(j, i)[2] * 1000 + (int)depth01.at<Vec3b>(j, i)[1] * 100 + (int)depth01.at<Vec3b>(j, i)[0];
-				if (d > 500 && d < 8000)
-				{
-					double z = d / 1000;
-					Mat p1 = Mat::zeros(3, 1, CV_64F);
-					Mat p2 = Mat::zeros(3, 1, CV_64F);
-					p1.at<double>(0, 0) = i;
-					p1.at<double>(1, 0) = j;
-					p1.at<double>(2, 0) = 1;
-					p2 = z*H1*p1 - H2;
-					double u1 = p2.at<double>(0, 0) / p2.at<double>(2, 0);
-					double v1 = p2.at<double>(1, 0) / p2.at<double>(2, 0);
-					//cout << endl;
-					//cout << "(u,v)"<<u1 << " " << v1 << endl;
-					//cout << "(i,j)" << i << " " << j << endl;
-					if (u1 >= 0 && u1 < showimg.cols&&v1 >= 0 && v1 < showimg.rows)
-					{
-						showimg.at<Vec3b>(v1, u1)[0] = image01.at<Vec3b>(j, i)[0];
-						showimg.at<Vec3b>(v1, u1)[1] = image01.at<Vec3b>(j, i)[1];
-						showimg.at<Vec3b>(v1, u1)[2] = image01.at<Vec3b>(j, i)[2];
-						//cout << image01.at<Vec3b>(j, i)[0] << " " << image01.at<Vec3b>(j, i)[1] << " " << image01.at<Vec3b>(j, i)[2] << endl;
-					}
-
-				}
-			}
-		cv::imshow("Show Image", showimg);
-		*/
-
-		//Validate the results.
+		//Correct Matches.
 		cv::correctMatches(fundemental, selPoints1, selPoints2, newpoint1, newpoint2);
-		for (int i = 0; i < newpoint1.size(); i++)
+
+		vector<cv::Point3d> PointSet1(selPoints1.size());
+		vector<cv::Point3d> PointSet2(selPoints2.size());
+
+		for (int i = 0; i < selPoints1.size(); i++)
 		{
-			double u = selPoints1[i].x;
-			double v = selPoints1[i].y;
-			double d = (int)depth01.at<Vec3b>(v, u)[2] * 1000 + (int)depth01.at<Vec3b>(v, u)[1] * 100 + (int)depth01.at<Vec3b>(v, u)[0];
-			if (d > 500 && d < 4500)
-			{
-				double z = d / 1000;
-				cout << "(u,v,d) information" << endl;
-				cout << u << " " << v << " " << d << endl;
-				Mat p1 = Mat::zeros(3, 1, CV_64F);
-				Mat p2 = Mat::zeros(3, 1, CV_64F);
-				p1.at<double>(0, 0) = u;
-				p1.at<double>(1, 0) = v;
-				p1.at<double>(2, 0) = 1;
-				p2 = z*H1*p1 - H2;
-				//cout << "This is p2 " << p2.at<double>(0, 0) << " " << p2.at<double>(1, 0) << " " << p2.at<double>(2, 0) << endl;
-				double u1 = p2.at<double>(0, 0) / p2.at<double>(2, 0);
-				double v1 = p2.at<double>(1, 0) / p2.at<double>(2, 0);
-
-				//cout << "newpoint2 (u1,v1,d1) information" << endl;
-				cout << "newpoint2 " << selPoints2[i].x << " " << selPoints2[i].y << endl;
-				cout << "(u1,v1)  " << u1 << " " << v1 << endl;
-				cout << "-----------------------------------" << endl;
-			}
-
+			double u1 = newpoint1[i].x;
+			double v1 = newpoint1[i].y;
+			PointSet1[i].x = newpoint1[i].x;
+			PointSet1[i].y = newpoint1[i].y;
+			double d1 = (int)depth01.at<Vec3b>(v1, u1)[2] * 1000 + (int)depth01.at<Vec3b>(v1, u1)[1] * 100 + (int)depth01.at<Vec3b>(v1, u1)[0];
+			PointSet1[i].z = d1;
+			double u2 = newpoint2[i].x;
+			double v2 = newpoint2[i].y;
+			PointSet2[i].x = newpoint2[i].x;
+			PointSet2[i].y = newpoint2[i].y;
+			double d2 = (int)depth02.at<Vec3b>(v2, u2)[2] * 1000 + (int)depth02.at<Vec3b>(v2, u2)[1] * 100 + (int)depth02.at<Vec3b>(v2, u2)[0];
+			PointSet2[i].z = d2;
 		}
 
+		ChooseRT(Rotation1, Rotation2, Transit, intrinsic, PointSet1, PointSet2);
+
+
+		//Mat H1 = Mat::zeros(3, 3, CV_64F);
+		//Mat H2 = Mat::zeros(3, 1, CV_64F);
+		//function(intrinsic, Rotation1, Transit, &H1, &H2);
+		//Mat showimg(1080, 1920, CV_8UC3, Scalar(255,255,255));
+		//cv::imshow("Show Image", showimg);
+		//for (int j = 0; j < depth01.rows; j++)
+		//	for (int i = 0; i < depth01.cols; i++)
+		//	{
+		//		double d = (int)depth01.at<Vec3b>(j, i)[2] * 1000 + (int)depth01.at<Vec3b>(j, i)[1] * 100 + (int)depth01.at<Vec3b>(j, i)[0];
+		//		if (d > 500 && d < 5000)
+		//		{
+		//			double z = d / 1000;
+		//			Mat p1 = Mat::zeros(3, 1, CV_64F);
+		//			Mat p2 = Mat::zeros(3, 1, CV_64F);
+		//			p1.at<double>(0, 0) = i;
+		//			p1.at<double>(1, 0) = j;
+		//			p1.at<double>(2, 0) = 1;
+		//			p2 = z*H1*p1 - H2;
+		//			double u1 = p2.at<double>(0, 0) / p2.at<double>(2, 0);
+		//			double v1 = p2.at<double>(1, 0) / p2.at<double>(2, 0);
+		//			//cout << endl;
+		//			//cout << "(u,v)"<<u1 << " " << v1 << endl;
+		//			//cout << "(i,j)" << i << " " << j << endl;
+		//			if (u1 >= 0 && u1 < showimg.cols&&v1 >= 0 && v1 < showimg.rows)
+		//			{
+
+		//				showimg.at<Vec3b>(v1, u1)[0] = image01.at<Vec3b>(j, i)[0];
+		//				showimg.at<Vec3b>(v1, u1)[1] = image01.at<Vec3b>(j, i)[1];
+		//				showimg.at<Vec3b>(v1, u1)[2] = image01.at<Vec3b>(j, i)[2];
+		//				//cout << image01.at<Vec3b>(j, i)[0] << " " << image01.at<Vec3b>(j, i)[1] << " " << image01.at<Vec3b>(j, i)[2] << endl;
+		//			}
+
+		//		}
+		//	}
+		//cv::imshow("Show Image", showimg);
 
 	}
 
