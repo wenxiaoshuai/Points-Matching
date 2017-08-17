@@ -65,8 +65,7 @@ void SelectMatching(vector<DMatch> matchPoints, vector<DMatch> matchPoints2, vec
 	for (int i = 0; i < matchPoints.size(); i++)
 	{
 		int match = matchPoints[i].trainIdx;
-		//if (matchPoints2[match].trainIdx == matchPoints[i].queryIdx && matchPoints[i].distance < minMatch + (maxMatch - minMatch) / 3)
-		if (matchPoints2[match].trainIdx == matchPoints[i].queryIdx)
+		if (matchPoints2[match].trainIdx == matchPoints[i].queryIdx && matchPoints[i].distance < minMatch + (maxMatch - minMatch) / 3)
 		{
 			(*usingMatchePoints).push_back(matchPoints[i]);
 		}
@@ -400,8 +399,81 @@ void tofile(Mat intrinsic, vector<cv::Point3d> Point1, vector<cv::Point3d> Point
 	outdata.close();
 }
 
-void RANSC()
-{}
+vector<int> RANSC(vector<KeyPoint> keyPoint1, vector<KeyPoint> keyPoint2, vector<DMatch> goodMatchePoints, double treshold)
+{
+	vector<int> random;
+	vector<int> select;
+	vector<int> pointIndexes1;
+	vector<int> pointIndexes2;
+	vector<DMatch> UsingMatches;
+	int iternum = 0;
+	cv::Mat fundemental;
+	vector<cv::Point2f> selPoints1, selPoints2;
+	int M = 0;
+	while (true)
+	{	
+		pointIndexes1.clear();
+		pointIndexes2.clear();
+		iternum++;
+		int tempM = 0;
+		if (goodMatchePoints.size() > 8)
+			random = randvec(goodMatchePoints.size());
+		else
+		{
+			for (int i = 0; i < 8; i++)
+				random.push_back(i);
+
+		}
+	
+		for (int i = 0; i < 8; i++)
+		{
+			pointIndexes1.push_back(goodMatchePoints[random[i]].queryIdx);
+			pointIndexes2.push_back(goodMatchePoints[random[i]].trainIdx);
+		}
+		KeyPoint::convert(keyPoint1, selPoints1, pointIndexes1);
+		KeyPoint::convert(keyPoint2, selPoints2, pointIndexes2);
+		// Compute F matrix from 8 matches
+		fundemental = cv::findFundamentalMat(
+			cv::Mat(selPoints1), // points in first image
+			cv::Mat(selPoints2), // points in second image
+			CV_FM_8POINT); // 8-point method
+
+		Mat temp1 = Mat::zeros(1, 3, CV_64F);
+		Mat temp2 = Mat::zeros(3, 1, CV_64F);
+		Mat result;
+		//cout << selPoints1[0].x << endl;
+		vector<double> results;
+		for (int i = 0; i < goodMatchePoints.size(); i++)
+		{
+			temp1.at<double>(0, 0) = keyPoint1[goodMatchePoints[i].queryIdx].pt.x;
+			temp1.at<double>(0, 1) = keyPoint1[goodMatchePoints[i].queryIdx].pt.y;
+			temp1.at<double>(0, 2) = 1;
+			temp2.at<double>(0, 0) = keyPoint2[goodMatchePoints[i].trainIdx].pt.x;
+			temp2.at<double>(1, 0) = keyPoint2[goodMatchePoints[i].trainIdx].pt.y;
+			temp2.at<double>(2, 0) = 1;
+
+			result = temp1*fundemental*temp2;
+			results.push_back(result.at<double>(0, 0));
+			double tempresult = abs(result.at<double>(0, 0));
+			if (tempresult < treshold)
+				tempM++;
+		}
+		if (tempM > M)
+		{
+			M = tempM;
+			select = random;
+		}
+		if (iternum > 50 )
+		{
+			cout << "Maching Numbers: " << M << endl;
+			for (int i = 0; i < 8; i++)
+				printf("-- Using Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", random[i], goodMatchePoints[random[i]].queryIdx, goodMatchePoints[random[i]].trainIdx);
+			return select;
+			break;
+		}
+	}
+	
+}
 
 int main()
 {
@@ -468,259 +540,194 @@ int main()
 	vector<cv::Point2f> usePoints1, usePoints2;
 	cv::Mat fundemental;
 	Mat EssentialMatrix;
-	int iternum = 0;
-	double threshold = 100;//At first, I wanna use a iteration to update the essential matrix.
-	//while (true)
+
+	/*
+	//Test Matches.
+	goodMatchePoints.erase(goodMatchePoints.begin());
+	goodMatchePoints.erase(goodMatchePoints.begin() + 1);
+	goodMatchePoints.erase(goodMatchePoints.begin());
+	goodMatchePoints.erase(goodMatchePoints.begin() + 2);
+	goodMatchePoints.erase(goodMatchePoints.begin() + 2);
+	goodMatchePoints.erase(goodMatchePoints.begin() + 4);
+	goodMatchePoints.erase(goodMatchePoints.begin() + 4);
+	goodMatchePoints.erase(goodMatchePoints.begin() + 6);
+	goodMatchePoints.erase(goodMatchePoints.begin() + 8);
+	goodMatchePoints.erase(goodMatchePoints.begin() + 12);
+	goodMatchePoints.erase(goodMatchePoints.begin() + 5);
+	//消灭3个映射到1个
+	goodMatchePoints.erase(goodMatchePoints.begin() + 8);
+	goodMatchePoints.erase(goodMatchePoints.begin() + 11);
+	int n = goodMatchePoints.size();
+	for (int i = 12; i < n; i++)
 	{
-		iternum++;
-		cout << "-----------------------------------------------------" << endl;
-		double sum = 0;
+		goodMatchePoints.pop_back();
+	}
+	*/
 
-		pointIndexes1.clear();
-		pointIndexes2.clear();
-		int num = UsingMatches.size();
-		cout << "size is: " << num << endl;
-		int n = 0;
-		int nums = 0;
-		/*
-		//Test Matches.
-		goodMatchePoints.erase(goodMatchePoints.begin());
-		goodMatchePoints.erase(goodMatchePoints.begin() + 1);
-		goodMatchePoints.erase(goodMatchePoints.begin());
-		goodMatchePoints.erase(goodMatchePoints.begin() + 2);
-		goodMatchePoints.erase(goodMatchePoints.begin() + 2);
-		goodMatchePoints.erase(goodMatchePoints.begin() + 4);
-		goodMatchePoints.erase(goodMatchePoints.begin() + 4);
-		goodMatchePoints.erase(goodMatchePoints.begin() + 6);
-		goodMatchePoints.erase(goodMatchePoints.begin() + 8);
-		goodMatchePoints.erase(goodMatchePoints.begin() + 12);
-		goodMatchePoints.erase(goodMatchePoints.begin() + 5);
-		//消灭3个映射到1个
-		goodMatchePoints.erase(goodMatchePoints.begin() + 8);
-		goodMatchePoints.erase(goodMatchePoints.begin() + 11);
-		int n = goodMatchePoints.size();
-		for (int i = 12; i < n; i++)
+	for (int i = 0; i < goodMatchePoints.size(); i++)
+	{
+		printf("-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, goodMatchePoints[i].queryIdx, goodMatchePoints[i].trainIdx);
+		int x1 = keyPoint1[goodMatchePoints[i].queryIdx].pt.x;
+		int y1 = keyPoint1[goodMatchePoints[i].queryIdx].pt.y;
+		int x2 = keyPoint2[goodMatchePoints[i].trainIdx].pt.x;
+		int y2 = keyPoint2[goodMatchePoints[i].trainIdx].pt.y;
+		int depth1 = 0;
+		int depth2 = 0;
+		if ((int)depth01.at<uchar>(y1, x1) != 255)
 		{
-			goodMatchePoints.pop_back();
+			depth1 = (int)depth01.at<Vec3b>(y1, x1)[2] * 1000 + (int)depth01.at<Vec3b>(y1, x1)[1] * 100 + (int)depth01.at<Vec3b>(y1, x1)[0];
+			if (depth1 > 5000)
+				depth1 = 0;
+			//cout << (int)depth01.at<Vec3b>(y1, x1)[2] << "   " << (int)depth01.at<Vec3b>(y1, x1)[1] << "   " << (int)depth01.at<Vec3b>(y1, x1)[0] << endl;
 		}
-		*/
-
-		for (int i = 0; i < goodMatchePoints.size(); i++)
+		if ((int)depth02.at<uchar>(y2, x2) != 255)
 		{
-			printf("-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, goodMatchePoints[i].queryIdx, goodMatchePoints[i].trainIdx);
-			int x1 = keyPoint1[goodMatchePoints[i].queryIdx].pt.x;
-			int y1 = keyPoint1[goodMatchePoints[i].queryIdx].pt.y;
-			int x2 = keyPoint2[goodMatchePoints[i].trainIdx].pt.x;
-			int y2 = keyPoint2[goodMatchePoints[i].trainIdx].pt.y;
-			int depth1 = 0;
-			int depth2 = 0;
-			if ((int)depth01.at<uchar>(y1, x1) != 255)
-			{
-				depth1 = (int)depth01.at<Vec3b>(y1, x1)[2] * 1000 + (int)depth01.at<Vec3b>(y1, x1)[1] * 100 + (int)depth01.at<Vec3b>(y1, x1)[0];
-				if (depth1 > 5000)
-					depth1 = 0;
-				//cout << (int)depth01.at<Vec3b>(y1, x1)[2] << "   " << (int)depth01.at<Vec3b>(y1, x1)[1] << "   " << (int)depth01.at<Vec3b>(y1, x1)[0] << endl;
-			}
-			if ((int)depth02.at<uchar>(y2, x2) != 255)
-			{
-				depth2 = (int)depth02.at<Vec3b>(y2, x2)[2] * 1000 + (int)depth02.at<Vec3b>(y2, x2)[1] * 100 + (int)depth02.at<Vec3b>(y2, x2)[0];
-				if (depth2 > 5000)
-					depth2 = 0;
-			}
-			if (depth1 > 500 && depth2 > 500)
-			{
-				validMatchePoints.push_back(goodMatchePoints[i]);
-			}
-
+			depth2 = (int)depth02.at<Vec3b>(y2, x2)[2] * 1000 + (int)depth02.at<Vec3b>(y2, x2)[1] * 100 + (int)depth02.at<Vec3b>(y2, x2)[0];
+			if (depth2 > 5000)
+				depth2 = 0;
 		}
-
-		/*vector<int> random;
-		if (goodMatchePoints.size() > 8)
-			random = randvec(goodMatchePoints.size());
-		else
+		if (depth1 > 500 && depth2 > 500)
 		{
-			for (int i = 0; i < 8; i++)
-			{
-				random.push_back(i);
-			}
+			validMatchePoints.push_back(goodMatchePoints[i]);
 		}
-
-
-		cout << "Using Matches are:" << endl;
-		for (int i = 0; i < 8; i++)
-		{
-			pointIndexes1.push_back(goodMatchePoints[random[i]].queryIdx);
-			pointIndexes2.push_back(goodMatchePoints[random[i]].trainIdx);
-			UsingMatches.push_back(goodMatchePoints[random[i]]);
-			printf("-- Using Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", random[i], UsingMatches[i].queryIdx, UsingMatches[i].trainIdx);
-		}*/
-
-		for (int i = 0; i < UsingMatches.size(); i++)
-		{
-			usepointIndexes1.push_back(UsingMatches[i].queryIdx);
-			usepointIndexes2.push_back(UsingMatches[i].trainIdx);
-		}
-		for (int i = 0; i < validMatchePoints.size(); i++)
-		{
-			pointIndexes1.push_back(validMatchePoints[i].queryIdx);
-			pointIndexes2.push_back(validMatchePoints[i].trainIdx);
-		}
-
-
-
-		//Using 8-Points Algorithm to obtain Fundamental Matrix.
-
-		// Convert keypoints into Point2f
-
-		KeyPoint::convert(keyPoint1, selPoints1, pointIndexes1);
-		KeyPoint::convert(keyPoint2, selPoints2, pointIndexes2);
-		KeyPoint::convert(keyPoint1, usePoints1, usepointIndexes1);
-		KeyPoint::convert(keyPoint2, usePoints2, usepointIndexes2);
-
-
-		// Compute F matrix from 8 matches
-		fundemental = cv::findFundamentalMat(
-			cv::Mat(usePoints1), // points in first image
-			cv::Mat(usePoints2), // points in second image
-			CV_FM_8POINT); // 8-point method
-
-		//Now we get the Fundamental Matrix F.
-
-		Mat temp1 = Mat::zeros(1, 3, CV_64F);
-		Mat temp2 = Mat::zeros(3, 1, CV_64F);
-		Mat result;
-		//cout << selPoints1[0].x << endl;
-		vector<double> results;
-		for (int i = 0; i < num; i++)
-		{
-			temp1.at<double>(0, 0) = keyPoint1[validMatchePoints[i].queryIdx].pt.x;
-			temp1.at<double>(0, 1) = keyPoint1[validMatchePoints[i].queryIdx].pt.y;
-			temp1.at<double>(0, 2) = 1;
-			temp2.at<double>(0, 0) = keyPoint2[validMatchePoints[i].trainIdx].pt.x;
-			temp2.at<double>(1, 0) = keyPoint2[validMatchePoints[i].trainIdx].pt.y;
-			temp2.at<double>(2, 0) = 1;
-
-			result = temp1*fundemental*temp2;
-			results.push_back(result.at<double>(0, 0));
-			cout << "result = " << i << " " << result.at<double>(0, 0) << endl;
-			sum += abs(result.at<double>(0, 0));
-		}
-		//threshold = sum / num;
-		//int k = 0;
-		//for (int i = 0; i < num; i++)
-		//{
-		//	if (abs(results[i]) > threshold)
-		//	{
-		//		k = i - n;
-		//		goodMatchePoints.erase(goodMatchePoints.begin() + k);
-		//		n++;
-		//	}
-		//}
-
-		cout << "The average value is  " << sum / num << endl;
-		//cout << "iter num is: " << iternum << endl;
-		//if (iternum > 20 || threshold == sum / num || goodMatchePoints.size() < 8)
-		//	break;
-
-		//find Essential Matrix.
-		Mat intrinsic = Mat::zeros(3, 3, CV_64F);
-		Mat intrinsicT = Mat::zeros(3, 3, CV_64F);
-		//depth camera intrinsic.
-		//intrinsic.at<double>(0, 0) = 365.299;
-		//intrinsic.at<double>(1, 1) = 365.299;
-		//intrinsic.at<double>(2, 2) = 1;
-		//intrinsic.at<double>(0, 2) = 256.398;
-		//intrinsic.at<double>(1, 2) = 206.882;
-		//estimated color camera intrinsic.
-		intrinsic.at<double>(0, 0) = 1082.628;
-		intrinsic.at<double>(1, 1) = 1082.628;
-		intrinsic.at<double>(2, 2) = 1;
-		intrinsic.at<double>(0, 2) = 960.125;
-		intrinsic.at<double>(1, 2) = 539.314;
-		transpose(intrinsic, intrinsicT);
-		EssentialMatrix = intrinsicT*fundemental*intrinsic;
-
-		cout << "Essential Matrix" << endl;
-		cout << EssentialMatrix.at<double>(0, 0) << " " << EssentialMatrix.at<double>(0, 1) << " " << EssentialMatrix.at<double>(0, 2) << endl;
-		cout << EssentialMatrix.at<double>(1, 0) << " " << EssentialMatrix.at<double>(1, 1) << " " << EssentialMatrix.at<double>(1, 2) << endl;
-		cout << EssentialMatrix.at<double>(2, 0) << " " << EssentialMatrix.at<double>(2, 1) << " " << EssentialMatrix.at<double>(2, 2) << endl;
-
-		//Sove the R & T from Essential.
-		Mat Rotation1 = Mat::zeros(3, 3, CV_64F);
-		Mat Rotation2 = Mat::zeros(3, 3, CV_64F);
-		Mat Transit = Mat::zeros(3, 1, CV_64F);
-		SolveRt(EssentialMatrix, &Rotation1, &Rotation2, &Transit);
-
-		//Correct Matches.
-		cv::correctMatches(fundemental, selPoints1, selPoints2, newpoint1, newpoint2);
-
-		vector<cv::Point3d> PointSet1(selPoints1.size());
-		vector<cv::Point3d> PointSet2(selPoints2.size());
-
-		for (int i = 0; i < selPoints1.size(); i++)
-		{
-			double u1 = selPoints1[i].x;
-			double v1 = selPoints1[i].y;
-			PointSet1[i].x = selPoints1[i].x;
-			PointSet1[i].y = selPoints1[i].y;
-			double d1 = (int)depth01.at<Vec3b>(v1, u1)[2] * 1000 + (int)depth01.at<Vec3b>(v1, u1)[1] * 100 + (int)depth01.at<Vec3b>(v1, u1)[0];
-			PointSet1[i].z = d1;
-			double u2 = selPoints2[i].x;
-			double v2 = selPoints2[i].y;
-			PointSet2[i].x = selPoints2[i].x;
-			PointSet2[i].y = selPoints2[i].y;
-			double d2 = (int)depth02.at<Vec3b>(v2, u2)[2] * 1000 + (int)depth02.at<Vec3b>(v2, u2)[1] * 100 + (int)depth02.at<Vec3b>(v2, u2)[0];
-			PointSet2[i].z = d2;
-		}
-
-		ChooseRT(Rotation1, Rotation2, Transit, intrinsic, PointSet1, PointSet2);
-
-		//tofile(intrinsic, PointSet1, PointSet2);
-
-		//Mat H1 = Mat::zeros(3, 3, CV_64F);
-		//Mat H2 = Mat::zeros(3, 1, CV_64F);
-		//function(intrinsic, Rotation1, Transit, &H1, &H2);
-		//Mat showimg(1080, 1920, CV_8UC3, Scalar(255,255,255));
-		//cv::imshow("Show Image", showimg);
-		//for (int j = 0; j < depth01.rows; j++)
-		//	for (int i = 0; i < depth01.cols; i++)
-		//	{
-		//		double d = (int)depth01.at<Vec3b>(j, i)[2] * 1000 + (int)depth01.at<Vec3b>(j, i)[1] * 100 + (int)depth01.at<Vec3b>(j, i)[0];
-		//		if (d > 500 && d < 5000)
-		//		{
-		//			double z = d / 1000;
-		//			Mat p1 = Mat::zeros(3, 1, CV_64F);
-		//			Mat p2 = Mat::zeros(3, 1, CV_64F);
-		//			p1.at<double>(0, 0) = i;
-		//			p1.at<double>(1, 0) = j;
-		//			p1.at<double>(2, 0) = 1;
-		//			p2 = z*H1*p1 - H2;
-		//			double u1 = p2.at<double>(0, 0) / p2.at<double>(2, 0);
-		//			double v1 = p2.at<double>(1, 0) / p2.at<double>(2, 0);
-		//			//cout << endl;
-		//			//cout << "(u,v)"<<u1 << " " << v1 << endl;
-		//			//cout << "(i,j)" << i << " " << j << endl;
-		//			if (u1 >= 0 && u1 < showimg.cols&&v1 >= 0 && v1 < showimg.rows)
-		//			{
-
-		//				showimg.at<Vec3b>(v1, u1)[0] = image01.at<Vec3b>(j, i)[0];
-		//				showimg.at<Vec3b>(v1, u1)[1] = image01.at<Vec3b>(j, i)[1];
-		//				showimg.at<Vec3b>(v1, u1)[2] = image01.at<Vec3b>(j, i)[2];
-		//				//cout << image01.at<Vec3b>(j, i)[0] << " " << image01.at<Vec3b>(j, i)[1] << " " << image01.at<Vec3b>(j, i)[2] << endl;
-		//			}
-
-		//		}
-		//	}
-		//cv::imshow("Show Image", showimg);
 
 	}
 
+	for (int i = 0; i < UsingMatches.size(); i++)
+	{
+		usepointIndexes1.push_back(UsingMatches[i].queryIdx);
+		usepointIndexes2.push_back(UsingMatches[i].trainIdx);
+	}
+
+	for (int i = 0; i < validMatchePoints.size(); i++)
+	{
+		pointIndexes1.push_back(validMatchePoints[i].queryIdx);
+		pointIndexes2.push_back(validMatchePoints[i].trainIdx);
+	}
+
+	
+	//Using 8-Points Algorithm to obtain Fundamental Matrix.
+	vector<int> select = RANSC(keyPoint1, keyPoint2, goodMatchePoints, 0.001);
+	vector<DMatch> Matches;
+	for (int i = 0; i < 8; i++)
+	{
+		Matches.push_back(goodMatchePoints[select[i]]);
+	}
+	
+	// Convert keypoints into Point2f
+
+	KeyPoint::convert(keyPoint1, selPoints1, pointIndexes1);
+	KeyPoint::convert(keyPoint2, selPoints2, pointIndexes2);
+	KeyPoint::convert(keyPoint1, usePoints1, usepointIndexes1);
+	KeyPoint::convert(keyPoint2, usePoints2, usepointIndexes2);
+
+
+	// Compute F matrix from 8 matches
+	fundemental = cv::findFundamentalMat(
+		cv::Mat(usePoints1), // points in first image
+		cv::Mat(usePoints2), // points in second image
+		CV_FM_8POINT); // 8-point method
+
+	//Now we get the Fundamental Matrix F.
+
+	//find Essential Matrix.
+	Mat intrinsic = Mat::zeros(3, 3, CV_64F);
+	Mat intrinsicT = Mat::zeros(3, 3, CV_64F);
+	//depth camera intrinsic.
+	//intrinsic.at<double>(0, 0) = 365.299;
+	//intrinsic.at<double>(1, 1) = 365.299;
+	//intrinsic.at<double>(2, 2) = 1;
+	//intrinsic.at<double>(0, 2) = 256.398;
+	//intrinsic.at<double>(1, 2) = 206.882;
+	//estimated color camera intrinsic.
+	intrinsic.at<double>(0, 0) = 1082.628;
+	intrinsic.at<double>(1, 1) = 1082.628;
+	intrinsic.at<double>(2, 2) = 1;
+	intrinsic.at<double>(0, 2) = 960.125;
+	intrinsic.at<double>(1, 2) = 539.314;
+	transpose(intrinsic, intrinsicT);
+	EssentialMatrix = intrinsicT*fundemental*intrinsic;
+
+	cout << "Essential Matrix" << endl;
+	cout << EssentialMatrix.at<double>(0, 0) << " " << EssentialMatrix.at<double>(0, 1) << " " << EssentialMatrix.at<double>(0, 2) << endl;
+	cout << EssentialMatrix.at<double>(1, 0) << " " << EssentialMatrix.at<double>(1, 1) << " " << EssentialMatrix.at<double>(1, 2) << endl;
+	cout << EssentialMatrix.at<double>(2, 0) << " " << EssentialMatrix.at<double>(2, 1) << " " << EssentialMatrix.at<double>(2, 2) << endl;
+
+	//Sove the R & T from Essential.
+	Mat Rotation1 = Mat::zeros(3, 3, CV_64F);
+	Mat Rotation2 = Mat::zeros(3, 3, CV_64F);
+	Mat Transit = Mat::zeros(3, 1, CV_64F);
+	SolveRt(EssentialMatrix, &Rotation1, &Rotation2, &Transit);
+
+	//Correct Matches.
+	cv::correctMatches(fundemental, selPoints1, selPoints2, newpoint1, newpoint2);
+
+	vector<cv::Point3d> PointSet1(selPoints1.size());
+	vector<cv::Point3d> PointSet2(selPoints2.size());
+
+	for (int i = 0; i < selPoints1.size(); i++)
+	{
+		double u1 = selPoints1[i].x;
+		double v1 = selPoints1[i].y;
+		PointSet1[i].x = selPoints1[i].x;
+		PointSet1[i].y = selPoints1[i].y;
+		double d1 = (int)depth01.at<Vec3b>(v1, u1)[2] * 1000 + (int)depth01.at<Vec3b>(v1, u1)[1] * 100 + (int)depth01.at<Vec3b>(v1, u1)[0];
+		PointSet1[i].z = d1;
+		double u2 = selPoints2[i].x;
+		double v2 = selPoints2[i].y;
+		PointSet2[i].x = selPoints2[i].x;
+		PointSet2[i].y = selPoints2[i].y;
+		double d2 = (int)depth02.at<Vec3b>(v2, u2)[2] * 1000 + (int)depth02.at<Vec3b>(v2, u2)[1] * 100 + (int)depth02.at<Vec3b>(v2, u2)[0];
+		PointSet2[i].z = d2;
+	}
+
+	ChooseRT(Rotation1, Rotation2, Transit, intrinsic, PointSet1, PointSet2);
+
+	//tofile(intrinsic, PointSet1, PointSet2);
+
+	//Mat H1 = Mat::zeros(3, 3, CV_64F);
+	//Mat H2 = Mat::zeros(3, 1, CV_64F);
+	//function(intrinsic, Rotation1, Transit, &H1, &H2);
+	//Mat showimg(1080, 1920, CV_8UC3, Scalar(255,255,255));
+	//cv::imshow("Show Image", showimg);
+	//for (int j = 0; j < depth01.rows; j++)
+	//	for (int i = 0; i < depth01.cols; i++)
+	//	{
+	//		double d = (int)depth01.at<Vec3b>(j, i)[2] * 1000 + (int)depth01.at<Vec3b>(j, i)[1] * 100 + (int)depth01.at<Vec3b>(j, i)[0];
+	//		if (d > 500 && d < 5000)
+	//		{
+	//			double z = d / 1000;
+	//			Mat p1 = Mat::zeros(3, 1, CV_64F);
+	//			Mat p2 = Mat::zeros(3, 1, CV_64F);
+	//			p1.at<double>(0, 0) = i;
+	//			p1.at<double>(1, 0) = j;
+	//			p1.at<double>(2, 0) = 1;
+	//			p2 = z*H1*p1 - H2;
+	//			double u1 = p2.at<double>(0, 0) / p2.at<double>(2, 0);
+	//			double v1 = p2.at<double>(1, 0) / p2.at<double>(2, 0);
+	//			//cout << endl;
+	//			//cout << "(u,v)"<<u1 << " " << v1 << endl;
+	//			//cout << "(i,j)" << i << " " << j << endl;
+	//			if (u1 >= 0 && u1 < showimg.cols&&v1 >= 0 && v1 < showimg.rows)
+	//			{
+
+	//				showimg.at<Vec3b>(v1, u1)[0] = image01.at<Vec3b>(j, i)[0];
+	//				showimg.at<Vec3b>(v1, u1)[1] = image01.at<Vec3b>(j, i)[1];
+	//				showimg.at<Vec3b>(v1, u1)[2] = image01.at<Vec3b>(j, i)[2];
+	//				//cout << image01.at<Vec3b>(j, i)[0] << " " << image01.at<Vec3b>(j, i)[1] << " " << image01.at<Vec3b>(j, i)[2] << endl;
+	//			}
+
+	//		}
+	//	}
+	//cv::imshow("Show Image", showimg);
 
 
 
-	//Draw Good Matching Points.
+
+
+//Draw Good Matching Points.
 	Mat imageOutput;//UsingMatches
-	cv::drawMatches(image01, keyPoint1, image02, keyPoint2, validMatchePoints, imageOutput, Scalar::all(-1),
+	cv::drawMatches(image01, keyPoint1, image02, keyPoint2, Matches, imageOutput, Scalar::all(-1),
 		Scalar::all(-1), vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
 	cv::imshow("Mathch Points", imageOutput);
 
