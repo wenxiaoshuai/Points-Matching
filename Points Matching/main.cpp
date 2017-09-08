@@ -139,15 +139,40 @@ int main()
 		pointIndexes2.push_back(validMatchePoints[i].trainIdx);
 	}
 
-	
+	// Convert keypoints into Point2f
+	KeyPoint::convert(keyPoint1, selPoints1, pointIndexes1);
+	KeyPoint::convert(keyPoint2, selPoints2, pointIndexes2);
+	KeyPoint::convert(keyPoint1, usePoints1, usepointIndexes1);
+	KeyPoint::convert(keyPoint2, usePoints2, usepointIndexes2);
+
+	//Construct a valid 3D point set.
+	vector<cv::Point3d> PointSet1(selPoints1.size());
+	vector<cv::Point3d> PointSet2(selPoints2.size());
+
+	for (int i = 0; i < selPoints1.size(); i++)
+	{
+		double u1 = selPoints1[i].x;
+		double v1 = selPoints1[i].y;
+		PointSet1[i].x = selPoints1[i].x;
+		PointSet1[i].y = selPoints1[i].y;
+		double d1 = (int)depth01.at<Vec3b>(v1, u1)[2] * 1000 + (int)depth01.at<Vec3b>(v1, u1)[1] * 100 + (int)depth01.at<Vec3b>(v1, u1)[0];
+		PointSet1[i].z = d1;
+		double u2 = selPoints2[i].x;
+		double v2 = selPoints2[i].y;
+		PointSet2[i].x = selPoints2[i].x;
+		PointSet2[i].y = selPoints2[i].y;
+		double d2 = (int)depth02.at<Vec3b>(v2, u2)[2] * 1000 + (int)depth02.at<Vec3b>(v2, u2)[1] * 100 + (int)depth02.at<Vec3b>(v2, u2)[0];
+		PointSet2[i].z = d2;
+	}
+
 	//Using 8-Points Algorithm to obtain Fundamental Matrix.
-	vector<int> select = RANSC(keyPoint1, keyPoint2, goodMatchePoints, 0.05);
+	vector<int> select = RANSC(keyPoint1, keyPoint2, goodMatchePoints, 0.001);
 	vector<DMatch> Matches;
 	for (int i = 0; i < 8; i++)
 	{
 		Matches.push_back(goodMatchePoints[select[i]]);
 	}
-	
+
 	for (int i = 0; i < Matches.size(); i++)
 	{
 		RANSCIndexes1.push_back(Matches[i].queryIdx);
@@ -155,69 +180,63 @@ int main()
 	}
 
 	// Convert keypoints into Point2f
-
-	KeyPoint::convert(keyPoint1, selPoints1, pointIndexes1);
-	KeyPoint::convert(keyPoint2, selPoints2, pointIndexes2);
-	KeyPoint::convert(keyPoint1, usePoints1, usepointIndexes1);
-	KeyPoint::convert(keyPoint2, usePoints2, usepointIndexes2);
 	KeyPoint::convert(keyPoint1, RANSCPoints1, RANSCIndexes1);
 	KeyPoint::convert(keyPoint2, RANSCPoints2, RANSCIndexes2);
 
 
 	// Compute F matrix from 8 matches
 	fundemental = cv::findFundamentalMat(
-		cv::Mat(usePoints1), // points in first image
-		cv::Mat(usePoints2), // points in second image
+		cv::Mat(RANSCPoints1), // points in first image
+		cv::Mat(RANSCPoints2), // points in second image
 		CV_FM_8POINT); // 8-point method
 
-	//Now we get the Fundamental Matrix F.
-	cv::Mat F= Mat::zeros(3, 3, CV_32F);
+	////Now we get the Fundamental Matrix F.
+	//cv::Mat F = Mat::zeros(3, 3, CV_64F);
+	//double value = 0;
+	//F = findF(RANSCPoints1, RANSCPoints2, &value);
 
-	F = findF(RANSCPoints1, RANSCPoints2);
+	////Correct Matches.
+	////cv::correctMatches(fundemental, usePoints1, usePoints2, newpoint1, newpoint2);
 
-	//Correct Matches.
-	//cv::correctMatches(fundemental, usePoints1, usePoints2, newpoint1, newpoint2);
-	
-    cout << "This is F:" << endl;
-	cout << F.at<float>(0, 0) << " " << F.at<float>(0, 1) << F.at<float>(0, 2) << endl;
-	cout << F.at<float>(1, 0) << " " << F.at<float>(1, 1) << F.at<float>(1, 2) << endl;
-	cout << F.at<float>(2, 0) << " " << F.at<float>(2, 1) << F.at<float>(2, 2) << endl;
+	//cout << "This is F:" << endl;
+	//cout << F.at<double>(0, 0) << " " << F.at<double>(0, 1) << F.at<double>(0, 2) << endl;
+	//cout << F.at<double>(1, 0) << " " << F.at<double>(1, 1) << F.at<double>(1, 2) << endl;
+	//cout << F.at<double>(2, 0) << " " << F.at<double>(2, 1) << F.at<double>(2, 2) << endl;
 
-	Mat temp1 = Mat::zeros(1, 3, CV_32F);
-	Mat temp2 = Mat::zeros(3, 1, CV_32F);
-	Mat result;
-	//cout << selPoints1[0].x << endl;
-	vector<float> results;
-	for (int i = 0; i < selPoints1.size(); i++)
-	{
-		temp1.at<float>(0, 0) = selPoints1[i].x;
-		temp1.at<float>(0, 1) = selPoints1[i].y;
-		temp1.at<float>(0, 2) = 1;
-		temp2.at<float>(0, 0) = selPoints2[i].x;
-		temp2.at<float>(1, 0) = selPoints2[i].y;
-		temp2.at<float>(2, 0) = 1;
+	//Mat temp1 = Mat::zeros(1, 3, CV_64F);
+	//Mat temp2 = Mat::zeros(3, 1, CV_64F);
+	//Mat result;
+	////cout << selPoints1[0].x << endl;
+	//vector<double> results;
+	//for (int i = 0; i < selPoints1.size(); i++)
+	//{
+	//	temp1.at<double>(0, 0) = selPoints1[i].x;
+	//	temp1.at<double>(0, 1) = selPoints1[i].y;
+	//	temp1.at<double>(0, 2) = 1;
+	//	temp2.at<double>(0, 0) = selPoints2[i].x;
+	//	temp2.at<double>(1, 0) = selPoints2[i].y;
+	//	temp2.at<double>(2, 0) = 1;
 
-		result = temp1*F*temp2;
-		cout << "$$$" << abs(result.at<float>(0, 0)) << endl;
-	}
+	//	result = temp1*F*temp2;
+	//	cout << "$$$" << abs(result.at<double>(0, 0)) << endl;
+	//}
 
-	Mat temp11 = Mat::zeros(1, 3, CV_64F);
-	Mat temp22= Mat::zeros(3, 1, CV_64F);
-	Mat result0;
-	//cout << selPoints1[0].x << endl;
-	for (int i = 0; i < selPoints2.size(); i++)
-	{
-		temp11.at<double>(0, 0) = selPoints1[i].x;
-		temp11.at<double>(0, 1) = selPoints1[i].y;
-		temp11.at<double>(0, 2) = 1;
-		temp22.at<double>(0, 0) = selPoints2[i].x;
-		temp22.at<double>(1, 0) = selPoints2[i].y;
-		temp22.at<double>(2, 0) = 1;
+	//Mat temp11 = Mat::zeros(1, 3, CV_64F);
+	//Mat temp22 = Mat::zeros(3, 1, CV_64F);
+	//Mat result0;
+	////cout << selPoints1[0].x << endl;
+	//for (int i = 0; i < selPoints2.size(); i++)
+	//{
+	//	temp11.at<double>(0, 0) = selPoints1[i].x;
+	//	temp11.at<double>(0, 1) = selPoints1[i].y;
+	//	temp11.at<double>(0, 2) = 1;
+	//	temp22.at<double>(0, 0) = selPoints2[i].x;
+	//	temp22.at<double>(1, 0) = selPoints2[i].y;
+	//	temp22.at<double>(2, 0) = 1;
 
-		result0 = temp11*fundemental*temp22;
-		cout << "@@@" << abs(result0.at<double>(0, 0)) << endl;
-	}
-
+	//	result0 = temp11*fundemental*temp22;
+	//	cout << "@@@" << abs(result0.at<double>(0, 0)) << endl;
+	//}
 
 
 	//find Essential Matrix.
@@ -243,42 +262,44 @@ int main()
 	cout << EssentialMatrix.at<double>(1, 0) << " " << EssentialMatrix.at<double>(1, 1) << " " << EssentialMatrix.at<double>(1, 2) << endl;
 	cout << EssentialMatrix.at<double>(2, 0) << " " << EssentialMatrix.at<double>(2, 1) << " " << EssentialMatrix.at<double>(2, 2) << endl;
 
-	//Sove the R & T from Essential.
+
+	//1.Sove the R & T from Essential.
 	Mat Rotation1 = Mat::zeros(3, 3, CV_64F);
 	Mat Rotation2 = Mat::zeros(3, 3, CV_64F);
 	Mat Transit = Mat::zeros(3, 1, CV_64F);
-	//SolveRt(EssentialMatrix, &Rotation1, &Rotation2, &Transit);
+	Mat Rotation0 = Mat::zeros(3, 3, CV_64F);
+	Mat Transit0 = Mat::zeros(3, 1, CV_64F);
+	SolveRt(EssentialMatrix, &Rotation1, &Rotation2, &Transit);
 
 	//Correct Matches.
 	cv::correctMatches(fundemental, selPoints1, selPoints2, newpoint1, newpoint2);
+	
+	//2.Solve R & T with SolvePnP.
+	int choose = -1;
+	SolveSp(PointSet1, selPoints2, intrinsic, &Rotation0, &Transit0, true);
 
-	vector<cv::Point3d> PointSet1(selPoints1.size());
-	vector<cv::Point3d> PointSet2(selPoints2.size());
+	//choose = ChooseRT(Rotation1, Rotation2, Transit, intrinsic, PointSet1, PointSet2);
 
-	for (int i = 0; i < selPoints1.size(); i++)
-	{
-		double u1 = selPoints1[i].x;
-		double v1 = selPoints1[i].y;
-		PointSet1[i].x = selPoints1[i].x;
-		PointSet1[i].y = selPoints1[i].y;
-		double d1 = (int)depth01.at<Vec3b>(v1, u1)[2] * 1000 + (int)depth01.at<Vec3b>(v1, u1)[1] * 100 + (int)depth01.at<Vec3b>(v1, u1)[0];
-		PointSet1[i].z = d1;
-		double u2 = selPoints2[i].x;
-		double v2 = selPoints2[i].y;
-		PointSet2[i].x = selPoints2[i].x;
-		PointSet2[i].y = selPoints2[i].y;
-		double d2 = (int)depth02.at<Vec3b>(v2, u2)[2] * 1000 + (int)depth02.at<Vec3b>(v2, u2)[1] * 100 + (int)depth02.at<Vec3b>(v2, u2)[0];
-		PointSet2[i].z = d2;
-	}
 
-	//ChooseRT(Rotation1, Rotation2, Transit, intrinsic, PointSet1, PointSet2);
 
+	//Write the 3D points to a file for ICP Alg.
 	//tofile(intrinsic, PointSet1, PointSet2);
+
 
 	//Mat H1 = Mat::zeros(3, 3, CV_64F);
 	//Mat H2 = Mat::zeros(3, 1, CV_64F);
-	//function(intrinsic, Rotation1, Transit, &H1, &H2);
-	//Mat showimg(1080, 1920, CV_8UC3, Scalar(255,255,255));
+	//if (choose == -1)
+	//	function(intrinsic, Rotation0, Transit0, &H1, &H2);
+	//if (choose == 0)
+	//	function(intrinsic, Rotation1, Transit, &H1, &H2);
+	//if (choose == 1)
+	//	function(intrinsic, Rotation1, -Transit, &H1, &H2);
+	//if (choose == 2)
+	//	function(intrinsic, Rotation2, Transit, &H1, &H2);
+	//if (choose == 3)
+	//	function(intrinsic, Rotation2, -Transit, &H1, &H2);
+
+	//Mat showimg(1080, 1920, CV_8UC3, Scalar(255, 255, 255));
 	//cv::imshow("Show Image", showimg);
 	//for (int j = 0; j < depth01.rows; j++)
 	//	for (int i = 0; i < depth01.cols; i++)
@@ -298,7 +319,7 @@ int main()
 	//			//cout << endl;
 	//			//cout << "(u,v)"<<u1 << " " << v1 << endl;
 	//			//cout << "(i,j)" << i << " " << j << endl;
-	//			if (u1 >= 0 && u1 < showimg.cols&&v1 >= 0 && v1 < showimg.rows)
+	//			if (u1 >= 0 && u1 < showimg.cols && v1 >= 0 && v1 < showimg.rows)
 	//			{
 
 	//				showimg.at<Vec3b>(v1, u1)[0] = image01.at<Vec3b>(j, i)[0];
@@ -310,12 +331,9 @@ int main()
 	//		}
 	//	}
 	//cv::imshow("Show Image", showimg);
+	//imwrite("show_PnPRansc.jpg", showimg);
 
-
-
-
-
-//Draw Good Matching Points.
+	//Draw Good Matching Points.
 	Mat imageOutput;//UsingMatches
 	cv::drawMatches(image01, keyPoint1, image02, keyPoint2, Matches, imageOutput, Scalar::all(-1),
 		Scalar::all(-1), vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);

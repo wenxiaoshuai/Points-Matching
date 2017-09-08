@@ -8,7 +8,6 @@
 using namespace cv;
 using namespace std;
 
-
 vector<int> randvec(int Num)
 {
 	vector<int> temp;
@@ -45,7 +44,8 @@ void SelectMatching(vector<DMatch> matchPoints, vector<DMatch> matchPoints2, vec
 
 	for (int i = 0; i < matchPoints.size(); i++)
 	{
-		if (matchPoints[i].distance < minMatch + (maxMatch - minMatch) / 2.5)
+		int match = matchPoints[i].trainIdx;
+		if (matchPoints2[match].trainIdx == matchPoints[i].queryIdx && matchPoints[i].distance < minMatch + (maxMatch - minMatch) / 3)
 		{
 			(*goodMatchePoints).push_back(matchPoints[i]);
 		}
@@ -137,13 +137,18 @@ void SolveRt(Mat Essential, Mat* Rotation1, Mat* Rotation2, Mat* Transit)
 	transpose(W, WT);
 	Mat Z = Mat::zeros(3, 3, CV_64F);
 	Z.at<double>(0, 1) = 1;
-	W.at<double>(1, 0) = -1;
+	Z.at<double>(1, 0) = -1;
 	Mat U, VT, w, E;
 	cv::SVD thissvd(Essential);
 	U = thissvd.u;
 	w = thissvd.w;
 	VT = thissvd.vt;
-	//cout << D.at<double>(0, 0) << " " << D.at<double>(1, 0) <<" "<< D.at<double>(2, 0) << endl;
+	//Mat a = U*U.t();
+	//cout << a.at<double>(0, 0) << " " << a.at<double>(0, 1) << " " << a.at<double>(0, 2) << endl;
+	//cout << a.at<double>(1, 0) << " " << a.at<double>(1, 1) << " " << a.at<double>(1, 2) << endl;
+	//cout << a.at<double>(2, 0) << " " << a.at<double>(2, 1) << " " << a.at<double>(2, 2) << endl;
+
+	//cout << w.at<double>(0, 0) << " " << w.at<double>(1, 0) <<" "<< w.at<double>(2, 0) << endl;
 	double s = (w.at<double>(0, 0) + w.at<double>(1, 0)) / 2;
 	Mat D = Mat::zeros(3, 3, CV_64F);
 	D.at<double>(0, 0) = s;
@@ -157,6 +162,7 @@ void SolveRt(Mat Essential, Mat* Rotation1, Mat* Rotation2, Mat* Transit)
 	//Get R
 	(*Rotation1) = U*W*VT;
 	(*Rotation2) = U*WT*VT;
+	//cout << "DET= " << determinant(*Rotation1) << endl;
 	if (determinant(*Rotation1) < 0)
 		(*Rotation1) = -1 * (*Rotation1);
 	if (determinant(*Rotation2) < 0)
@@ -165,6 +171,11 @@ void SolveRt(Mat Essential, Mat* Rotation1, Mat* Rotation2, Mat* Transit)
 	Mat UT;
 	transpose(U, UT);
 	Mat Tx = U*Z*UT;
+
+	//cout << Tx.at<double>(0, 0) << " " << Tx.at<double>(0, 1) << " " << Tx.at<double>(0, 2) << endl;
+	//cout << Tx.at<double>(1, 0) << " " << Tx.at<double>(1, 1) << " " << Tx.at<double>(1, 2) << endl;
+	//cout << Tx.at<double>(2, 0) << " " << Tx.at<double>(2, 1) << " " << Tx.at<double>(2, 2) << endl;
+
 	(*Transit).at<double>(0, 0) = Tx.at<double>(2, 1);
 	(*Transit).at<double>(1, 0) = Tx.at<double>(0, 2);
 	(*Transit).at<double>(2, 0) = Tx.at<double>(1, 0);
@@ -180,7 +191,8 @@ void function(Mat M, Mat R, Mat T, Mat* temp1, Mat* temp2)
 
 }
 
-void ChooseRT(Mat R1, Mat R2, Mat T, Mat intrinsic, vector<cv::Point3d> Point1, vector<cv::Point3d> Point2)
+
+int ChooseRT(Mat R1, Mat R2, Mat T, Mat intrinsic, vector<cv::Point3d> Point1, vector<cv::Point3d> Point2)
 {
 	//Get Coeffcient Matrices.
 	Mat H1 = Mat::zeros(3, 3, CV_64F);
@@ -253,7 +265,7 @@ void ChooseRT(Mat R1, Mat R2, Mat T, Mat intrinsic, vector<cv::Point3d> Point1, 
 		N++;
 	}
 	cout << "Final Decision:" << endl;
-	cout << "Case " << MatchIndex << ", Match Number is " << MatchNum << " ,Average Loss is " << Loss / Point1.size() << endl;
+	cout << "Case " << MatchIndex << ", Match Number is " << MatchNum << " over " << Point1.size() << " ,Average Loss is " << Loss / Point1.size() << endl;
 	if (MatchIndex == 0)
 	{
 		cout << "Rotation Matrix" << endl;
@@ -298,11 +310,137 @@ void ChooseRT(Mat R1, Mat R2, Mat T, Mat intrinsic, vector<cv::Point3d> Point1, 
 		cout << -T.at<double>(1, 0) << endl;
 		cout << -T.at<double>(2, 0) << endl;
 	}
-
-
-
+	return MatchIndex;
 
 }
+
+int ChooseRT2(Mat R1, Mat R2, Mat T, Mat intrinsic, vector<cv::Point3d> Point1, vector<cv::Point3d> Point2)
+{
+	//Get Coeffcient Matrices.
+	Mat R = Mat::zeros(3, 3, CV_64F);
+	Mat t = Mat::zeros(3, 1, CV_64F);
+	int N = 0;
+	int MatchIndex = -1;
+
+	double fx = intrinsic.at<double>(0, 0);
+	double fy = intrinsic.at<double>(1, 1);
+	double cx = intrinsic.at<double>(0, 2);
+	double cy = intrinsic.at<double>(1, 2);
+	//Validate the results.
+	while (N < 4)
+	{
+		if (N == 0)
+		{
+			R = R1;
+			t = T;
+		}
+		if (N == 1)
+		{
+			R = R1;
+			t = -T;
+		}
+		if (N == 2)
+		{
+			R = R2;
+			t = T;
+		}
+		if (N == 3)
+		{
+			R = R2;
+			t = -T;
+		}
+		cout << "===================================================" << endl;
+		cout << "                  Round " << N << endl;
+		cout << "===================================================" << endl;
+		for (int i = 0; i < Point1.size(); i++)
+		{
+			double u = Point1[i].x;
+			double v = Point1[i].y;
+			double d = Point1[i].z;
+			if (d > 500 && d < 5000)
+			{
+				double z = d / 1000;
+				double x = z*(u - cx) / fx;
+				double y = z*(v - cy) / fy;
+				Mat P1 = Mat::zeros(3, 1, CV_64F);
+				Mat P2 = Mat::zeros(3, 1, CV_64F);
+				P1.at<double>(0, 0) = x;
+				P1.at<double>(1, 0) = y;
+				P1.at<double>(2, 0) = z;
+				P2 = R*(P1 - t);
+				//cout << "This is p2 " << p2.at<double>(0, 0) << " " << p2.at<double>(1, 0) << " " << p2.at<double>(2, 0) << endl;
+				double x2 = P2.at<double>(0, 0);
+				double y2 = P2.at<double>(1, 0);
+				double z2 = P2.at<double>(2, 0);
+
+				cout << "P2 information" << endl;
+				cout << "prex= " << x2 << " prey= " << y2 << " prez= " << z2 << endl;
+				double tempu = Point2[i].x;
+				double tempv = Point2[i].y;
+				double tempd = Point2[i].z;
+				double tempz = tempd / 1000;
+				double tempx = tempz*(tempu - cx) / fx;
+				double tempy = tempz*(tempv - cy) / fy;
+				cout << "x= " << tempx << " y= " << tempy << " z= " << tempz << endl;
+
+				if (z2 < 0)
+					break;
+				cout << "-----------------------------------" << endl;
+				if (i == Point1.size() - 1)
+					cout << "This one is chosen"<<endl;
+			}
+		}
+		N++;
+	}
+	cout << "Final Decision:" << endl;
+	//cout << "Case " << MatchIndex << ", Match Number is " << MatchNum << " over " << Point1.size() << " ,Average Loss is " << Loss / Point1.size() << endl;
+	if (MatchIndex == 0)
+	{
+		cout << "Rotation Matrix" << endl;
+		cout << R1.at<double>(0, 0) << " " << R1.at<double>(0, 1) << " " << R1.at<double>(0, 2) << endl;
+		cout << R1.at<double>(1, 0) << " " << R1.at<double>(1, 1) << " " << R1.at<double>(1, 2) << endl;
+		cout << R1.at<double>(2, 0) << " " << R1.at<double>(2, 1) << " " << R1.at<double>(2, 2) << endl;
+		cout << "Translation Vector" << endl;
+		cout << T.at<double>(0, 0) << endl;
+		cout << T.at<double>(1, 0) << endl;
+		cout << T.at<double>(2, 0) << endl;
+	}
+	if (MatchIndex == 1)
+	{
+		cout << "Rotation Matrix" << endl;
+		cout << R1.at<double>(0, 0) << " " << R1.at<double>(0, 1) << " " << R1.at<double>(0, 2) << endl;
+		cout << R1.at<double>(1, 0) << " " << R1.at<double>(1, 1) << " " << R1.at<double>(1, 2) << endl;
+		cout << R1.at<double>(2, 0) << " " << R1.at<double>(2, 1) << " " << R1.at<double>(2, 2) << endl;
+		cout << "Translation Vector" << endl;
+		cout << -T.at<double>(0, 0) << endl;
+		cout << -T.at<double>(1, 0) << endl;
+		cout << -T.at<double>(2, 0) << endl;
+	}
+	if (MatchIndex == 2)
+	{
+		cout << "Rotation Matrix" << endl;
+		cout << R2.at<double>(0, 0) << " " << R2.at<double>(0, 1) << " " << R2.at<double>(0, 2) << endl;
+		cout << R2.at<double>(1, 0) << " " << R2.at<double>(1, 1) << " " << R2.at<double>(1, 2) << endl;
+		cout << R2.at<double>(2, 0) << " " << R2.at<double>(2, 1) << " " << R2.at<double>(2, 2) << endl;
+		cout << "Translation Vector" << endl;
+		cout << T.at<double>(0, 0) << endl;
+		cout << T.at<double>(1, 0) << endl;
+		cout << T.at<double>(2, 0) << endl;
+	}
+	if (MatchIndex == 3)
+	{
+		cout << "Rotation Matrix" << endl;
+		cout << R2.at<double>(0, 0) << " " << R2.at<double>(0, 1) << " " << R2.at<double>(0, 2) << endl;
+		cout << R2.at<double>(1, 0) << " " << R2.at<double>(1, 1) << " " << R2.at<double>(1, 2) << endl;
+		cout << R2.at<double>(2, 0) << " " << R2.at<double>(2, 1) << " " << R2.at<double>(2, 2) << endl;
+		cout << "Translation Vector" << endl;
+		cout << -T.at<double>(0, 0) << endl;
+		cout << -T.at<double>(1, 0) << endl;
+		cout << -T.at<double>(2, 0) << endl;
+	}
+	return MatchIndex;
+}
+
 void tofile(Mat intrinsic, vector<cv::Point3d> Point1, vector<cv::Point3d> Point2)
 {
 	double fx, fy, cx, cy;
@@ -397,6 +535,218 @@ void tofile(Mat intrinsic, vector<cv::Point3d> Point1, vector<cv::Point3d> Point
 	outdata.close();
 }
 
+void Normalize(const std::vector<cv::Point2f>& points, std::vector<cv::Point2f>& points_norm, cv::Mat& T)
+{
+	const int N = points.size();
+	if (N == 0)
+		return;
+
+	points_norm.resize(N);
+
+	cv::Point2f mean(0, 0);
+	for (int i = 0; i < N; ++i)
+	{
+		mean += points[i];
+	}
+	mean.x = mean.x / N;
+	mean.y = mean.y / N;
+
+	cv::Point2f mean_dev(0, 0);
+
+	for (int i = 0; i < N; ++i)
+	{
+		points_norm[i] = points[i] - mean;
+
+		mean_dev.x += fabs(points_norm[i].x);
+		mean_dev.y += fabs(points_norm[i].y);
+	}
+	mean_dev.x = mean_dev.x / N;
+	mean_dev.y = mean_dev.y / N;
+
+	const double scale_x = 1.0 / mean_dev.x;
+	const double scale_y = 1.0 / mean_dev.y;
+
+	for (int i = 0; i < N; i++)
+	{
+		points_norm[i].x *= scale_x;
+		points_norm[i].y *= scale_y;
+	}
+
+	T = cv::Mat::eye(3, 3, CV_64F);
+	T.at<double>(0, 0) = scale_x;
+	T.at<double>(1, 1) = scale_y;
+	T.at<double>(0, 2) = -mean.x*scale_x;
+	T.at<double>(1, 2) = -mean.y*scale_y;
+}
+
+cv::Mat findF2D(const std::vector<cv::Point2f> pts_prev, const std::vector<cv::Point2f> pts_next)
+{
+	const int N = pts_prev.size();
+	assert(N >= 8);
+	std::vector<cv::Point2f> pts_prev_norm;
+	std::vector<cv::Point2f> pts_next_norm;
+	cv::Mat T1, T2;
+	//Normalize(pts_prev, pts_prev_norm, T1);
+	//Normalize(pts_next, pts_next_norm, T2);
+	cv::Mat A(N, 9, CV_64F);
+	for (int i = 0; i < N; ++i)
+	{
+		/*	const float u1 = pts_prev_norm[i].x;
+			const float v1 = pts_prev_norm[i].y;
+			const float u2 = pts_next_norm[i].x;
+			const float v2 = pts_next_norm[i].y;*/
+		const double u1 = pts_prev[i].x;
+		const double v1 = pts_prev[i].y;
+		const double u2 = pts_next[i].x;
+		const double v2 = pts_next[i].y;
+		double* ai = A.ptr<double>(i);
+
+		ai[0] = u2*u1;
+		ai[1] = u1*v2;
+		ai[2] = u1;
+		ai[3] = v1*u2;
+		ai[4] = v1*v2;
+		ai[5] = v1;
+		ai[6] = u2;
+		ai[7] = v2;
+		ai[8] = 1;
+	}
+	cv::Mat u, w, vt;
+
+	//cv::eigen(A.t()*A, w, vt);
+	cv::SVDecomp(A, w, u, vt, cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
+
+	cv::Mat Fpre = vt.row(8).reshape(0, 3);
+
+	cv::SVDecomp(Fpre, w, u, vt, cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
+	//cout << "W(1) = " << w.at<double>(0) << endl;
+	//cout << "W(2) = " << w.at<double>(1) << endl;
+	//cout << "W(3) = " << w.at<double>(2) << endl;
+	w.at<double>(2) = 0;
+
+	cv::Mat F_norm = u*cv::Mat::diag(w)*vt;
+
+	//This part for testing.
+	{
+		Mat result;
+		Mat temp1 = Mat::zeros(1, 3, CV_64F);
+		Mat temp2 = Mat::zeros(3, 1, CV_64F);
+		for (int i = 0; i < N; i++)
+		{
+			temp1.at<double>(0, 0) = pts_prev[i].x;
+			temp1.at<double>(0, 1) = pts_prev[i].y;
+			temp1.at<double>(0, 2) = 1;
+			temp2.at<double>(0, 0) = pts_next[i].x;
+			temp2.at<double>(1, 0) = pts_next[i].y;
+			temp2.at<double>(2, 0) = 1;
+
+			result = temp1*Fpre*temp2;
+			//cout << "This is test in RANSC: " << abs(result.at<double>(0, 0)) << endl;
+		}
+	}
+
+	return F_norm;
+}
+cv::Mat findF3D(const std::vector<cv::Point3f> pts_prev, const std::vector<cv::Point3f> pts_next, Mat intrinsic)
+{
+	const int N = pts_prev.size();
+	assert(N >= 8);
+	std::vector<cv::Point3f> prev;
+	std::vector<cv::Point3f> next;
+
+	//cv::Mat T1, T2;
+	//Normalize(pts_prev, pts_prev_norm, T1);
+	//Normalize(pts_next, pts_next_norm, T2);
+	double fx = intrinsic.at<double>(0, 0);
+	double fy = intrinsic.at<double>(1, 1);
+	double cx = intrinsic.at<double>(0, 2);
+	double cy = intrinsic.at<double>(1, 2);
+
+	for (int i = 0; i < pts_prev.size(); i++)
+	{
+		const double u1 = pts_prev[i].x;
+		const double v1 = pts_prev[i].y;
+		const double d1 = pts_prev[i].z;
+		const double u2 = pts_next[i].x;
+		const double v2 = pts_next[i].y;
+		const double d2 = pts_next[i].z;
+
+		double z1 = d1 / 1000;
+		double x1 = z1*(u1 - cx) / fx;
+		double y1 = z1*(v1 - cy) / fy;
+		double z2 = d2 / 1000;
+		double x2 = z2*(u1 - cx) / fx;
+		double y2 = z2*(v1 - cy) / fy;
+
+		prev[i].x = x1;
+		prev[i].y = y1;
+		prev[i].z = z1;
+		next[i].x = x2;
+		next[i].y = y2;
+		next[i].z = z2;
+
+	}
+	cv::Mat A(N, 9, CV_64F);
+	for (int i = 0; i < N; ++i)
+	{
+
+		const double x1 = prev[i].x;
+		const double y1 = prev[i].y;
+		const double z1 = prev[i].z;
+		const double x2 = next[i].x;
+		const double y2 = next[i].y;
+		const double z2 = next[i].z;
+
+		double* ai = A.ptr<double>(i);
+
+		ai[0] = x2*x1;
+		ai[1] = y2*x1;
+		ai[2] = z2*x1;
+		ai[3] = x2*y1;
+		ai[4] = y2*y1;
+		ai[5] = z2*y1;
+		ai[6] = x2*z1;
+		ai[7] = y2*z1;
+		ai[8] = z2*z1;
+	}
+	cv::Mat u, w, vt;
+
+	//cv::eigen(A.t()*A, w, vt);
+	cv::SVDecomp(A, w, u, vt, cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
+
+	cv::Mat Fpre = vt.row(8).reshape(0, 3);
+
+	cv::SVDecomp(Fpre, w, u, vt, cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
+	cout << "W(1) = " << w.at<double>(0) << endl;
+	cout << "W(2) = " << w.at<double>(1) << endl;
+	cout << "W(3) = " << w.at<double>(2) << endl;
+	w.at<double>(2) = 0;
+
+	cv::Mat F_norm = u*cv::Mat::diag(w)*vt;
+
+	//This part for testing.
+	{
+		Mat result;
+		Mat temp1 = Mat::zeros(1, 3, CV_64F);
+		Mat temp2 = Mat::zeros(3, 1, CV_64F);
+		for (int i = 0; i < N; i++)
+		{
+			temp1.at<double>(0, 0) = pts_prev[i].x;
+			temp1.at<double>(0, 1) = pts_prev[i].y;
+			temp1.at<double>(0, 2) = 1;
+			temp2.at<double>(0, 0) = pts_next[i].x;
+			temp2.at<double>(1, 0) = pts_next[i].y;
+			temp2.at<double>(2, 0) = 1;
+
+
+			result = temp1*Fpre*temp2;
+			cout << "This is test in RANSC: " << abs(result.at<double>(0, 0)) << endl;
+
+		}
+
+		return Fpre;
+	}
+}
 vector<int> RANSC(vector<KeyPoint> keyPoint1, vector<KeyPoint> keyPoint2, vector<DMatch> goodMatchePoints, double treshold)
 {
 	vector<int> random;
@@ -431,16 +781,14 @@ vector<int> RANSC(vector<KeyPoint> keyPoint1, vector<KeyPoint> keyPoint2, vector
 		KeyPoint::convert(keyPoint1, selPoints1, pointIndexes1);
 		KeyPoint::convert(keyPoint2, selPoints2, pointIndexes2);
 		// Compute F matrix from 8 matches
-		fundemental = cv::findFundamentalMat(
-			cv::Mat(selPoints1), // points in first image
-			cv::Mat(selPoints2), // points in second image
-			CV_FM_8POINT); // 8-point method
+		fundemental = findF2D(selPoints1, selPoints2);
 
 		Mat temp1 = Mat::zeros(1, 3, CV_64F);
 		Mat temp2 = Mat::zeros(3, 1, CV_64F);
 		Mat result;
 		//cout << selPoints1[0].x << endl;
 		vector<double> results;
+		//cout << "Test Results:" << endl;
 		for (int i = 0; i < goodMatchePoints.size(); i++)
 		{
 			temp1.at<double>(0, 0) = keyPoint1[goodMatchePoints[i].queryIdx].pt.x;
@@ -453,6 +801,7 @@ vector<int> RANSC(vector<KeyPoint> keyPoint1, vector<KeyPoint> keyPoint2, vector
 			result = temp1*fundemental*temp2;
 			results.push_back(result.at<double>(0, 0));
 			double tempresult = abs(result.at<double>(0, 0));
+			//cout << tempresult << endl;
 			if (tempresult < treshold)
 				tempM++;
 		}
@@ -473,192 +822,44 @@ vector<int> RANSC(vector<KeyPoint> keyPoint1, vector<KeyPoint> keyPoint2, vector
 
 }
 
-void Normalize(const std::vector<cv::Point2f>& points, std::vector<cv::Point2f>& points_norm, cv::Mat& T)
+void SolveSp(vector<cv::Point3d> PointSet1, vector<cv::Point2f> selPoints2, Mat camera_matrix, Mat* Rotation, Mat* Transit, bool Ransc=false)
 {
-	const int N = points.size();
-	if (N == 0)
-		return;
+	cv::Mat rotation_vector; // Rotation in axis-angle form
+	cv::Mat translation_vector;
+	cv::Mat rotation;
+	cv::Mat dist_coeffs = cv::Mat::zeros(4, 1, cv::DataType<double>::type); // Assuming no lens distortion
 
-	points_norm.resize(N);
-
-	cv::Point2f mean(0, 0);
-	for (int i = 0; i < N; ++i)
+	for (int i = 0; i < PointSet1.size(); i++)
 	{
-		mean += points[i];
+		PointSet1[i].z = PointSet1[i].z / 1000;
+		PointSet1[i].x = PointSet1[i].z *(PointSet1[i].x - camera_matrix.at<double>(0, 2)) / camera_matrix.at<double>(0, 0);
+		PointSet1[i].y = PointSet1[i].z *(PointSet1[i].y - camera_matrix.at<double>(1, 2)) / camera_matrix.at<double>(1, 1);
+
 	}
-	mean.x = mean.x / N;
-	mean.y = mean.y / N;
+	if(Ransc)
+	cv::solvePnPRansac(PointSet1, selPoints2, camera_matrix, dist_coeffs, rotation_vector, translation_vector);
+	else
+	cv::solvePnP(PointSet1, selPoints2, camera_matrix, dist_coeffs, rotation_vector, translation_vector,true, CV_EPNP);
+	
+	cv::Rodrigues(rotation_vector, *Rotation);
+	rotation = *Rotation;
+	cout << "Rotation Vector " << endl;
+	cout << rotation.at<double>(0, 0) << " " << rotation.at<double>(0, 1) << " " << rotation.at<double>(0, 2) << endl;
+	cout << rotation.at<double>(1, 0) << " " << rotation.at<double>(1, 1) << " " << rotation.at<double>(1, 2) << endl;
+	cout << rotation.at<double>(2, 0) << " " << rotation.at<double>(2, 1) << " " << rotation.at<double>(2, 2) << endl;
+	(*Transit) = translation_vector;
+	cout << "Translation Vector" << endl;
+	cout << translation_vector.at<double>(0, 0) << endl;
+	cout << translation_vector.at<double>(1, 0) << endl;
+	cout << translation_vector.at<double>(2, 0) << endl;
 
-	cv::Point2f mean_dev(0, 0);
-
-	for (int i = 0; i < N; ++i)
-	{
-		points_norm[i] = points[i] - mean;
-
-		mean_dev.x += fabs(points_norm[i].x);
-		mean_dev.y += fabs(points_norm[i].y);
-	}
-	mean_dev.x = mean_dev.x / N;
-	mean_dev.y = mean_dev.y / N;
-
-	const float scale_x = 1.0 / mean_dev.x;
-	const float scale_y = 1.0 / mean_dev.y;
-
-	for (int i = 0; i < N; i++)
-	{
-		points_norm[i].x *= scale_x;
-		points_norm[i].y *= scale_y;
-	}
-
-	T = cv::Mat::eye(3, 3, CV_32F);
-	T.at<float>(0, 0) = scale_x;
-	T.at<float>(1, 1) = scale_y;
-	T.at<float>(0, 2) = -mean.x*scale_x;
-	T.at<float>(1, 2) = -mean.y*scale_y;
-}
-cv::Mat findF(const std::vector<cv::Point2f> pts_prev, const std::vector<cv::Point2f> pts_next)
-{
-	const int N = pts_prev.size();
-	assert(N >= 8);
-	std::vector<cv::Point2f> pts_prev_norm;
-	std::vector<cv::Point2f> pts_next_norm;
-	cv::Mat T1, T2;
-	Normalize(pts_prev, pts_prev_norm, T1);
-	Normalize(pts_next, pts_next_norm, T2);
-	cv::Mat A(N, 9, CV_32F);
-	for (int i = 0; i < N; ++i)
-	{
-		const float u1 = pts_prev_norm[i].x;
-		const float v1 = pts_prev_norm[i].y;
-		const float u2 = pts_next_norm[i].x;
-		const float v2 = pts_next_norm[i].y;
-		float* ai = A.ptr<float>(i);
-
-		ai[0] = u2*u1;
-		ai[1] = u2*v1;
-		ai[2] = u2;
-		ai[3] = v2*u1;
-		ai[4] = v2*v1;
-		ai[5] = v2;
-		ai[6] = u1;
-		ai[7] = v1;
-		ai[8] = 1;
-	}
-	cv::Mat u, w, vt;
-
-	cv::eigen(A.t()*A, w, vt);
-	//cv::SVDecomp(A,w,u,vt,cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
-
-	cv::Mat Fpre = vt.row(8).reshape(0, 3);
-
-	cv::SVDecomp(Fpre, w, u, vt, cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
-
-	w.at<float>(2) = 0;
-
-	cv::Mat F_norm = u*cv::Mat::diag(w)*vt;
-
-	cv::Mat F = T2.t()*F_norm*T1;
-	float F22 = F.at<float>(2, 2);
-	if (fabs(F22) > FLT_EPSILON)
-		F /= F22;
-
-	//This part for testing.
-	{
-		cv::Mat H = T1.t()*F*T2;
-		cout << "&^&^&^&^&" << endl;
-		cout << H.at<float>(0, 0) << " " << H.at<float>(0, 1) << " " << H.at<float>(0, 2) << endl;
-		cout << H.at<float>(1, 0) << " " << H.at<float>(1, 1) << " " << H.at<float>(1, 2) << endl;
-		cout << H.at<float>(2, 0) << " " << H.at<float>(2, 1) << " " << H.at<float>(2, 2) << endl;
-
-		Mat result;
-		Mat temp1 = Mat::zeros(1, 3, CV_32F);
-		Mat temp2 = Mat::zeros(3, 1, CV_32F);
-		for (int i = 0; i < N; i++)
-		{
-			temp1.at<float>(0, 0) = pts_prev_norm[i].x;
-			temp1.at<float>(0, 1) = pts_prev_norm[i].y;
-			temp1.at<float>(0, 2) = 1;
-			temp2.at<float>(0, 0) = pts_next_norm[i].x;
-			temp2.at<float>(1, 0) = pts_next_norm[i].y;
-			temp2.at<float>(2, 0) = 1;
-
-			result = temp1*F*temp2;
-			cout << "This is test in RANSC: " << abs(result.at<float>(0, 0)) << endl;
-		}
-		
-	}
-
-	return F;
-}
-vector<int> newRANSC(vector<KeyPoint> keyPoint1, vector<KeyPoint> keyPoint2, vector<DMatch> goodMatchePoints, double treshold)
-{
-	vector<int> random;
-	vector<int> select;
-	vector<int> pointIndexes1;
-	vector<int> pointIndexes2;
-	vector<DMatch> UsingMatches;
-	int iternum = 0;
-	cv::Mat fundemental;
-	vector<cv::Point2f> selPoints1, selPoints2;
-	int M = 0;
-	while (true)
-	{
-		pointIndexes1.clear();
-		pointIndexes2.clear();
-		iternum++;
-		int tempM = 0;
-		if (goodMatchePoints.size() > 8)
-			random = randvec(goodMatchePoints.size());
-		else
-		{
-			for (int i = 0; i < 8; i++)
-				random.push_back(i);
-
-		}
-
-		for (int i = 0; i < 8; i++)
-		{
-			pointIndexes1.push_back(goodMatchePoints[random[i]].queryIdx);
-			pointIndexes2.push_back(goodMatchePoints[random[i]].trainIdx);
-		}
-		KeyPoint::convert(keyPoint1, selPoints1, pointIndexes1);
-		KeyPoint::convert(keyPoint2, selPoints2, pointIndexes2);
-		// Compute F matrix from 8 matches
-		fundemental = findF(selPoints1, selPoints2);
-
-		Mat temp1 = Mat::zeros(1, 3, CV_32F);
-		Mat temp2 = Mat::zeros(3, 1, CV_32F);
-		Mat result;
-		//cout << selPoints1[0].x << endl;
-		vector<float> results;
-		for (int i = 0; i < goodMatchePoints.size(); i++)
-		{
-			temp1.at<float>(0, 0) = keyPoint1[goodMatchePoints[i].queryIdx].pt.x;
-			temp1.at<float>(0, 1) = keyPoint1[goodMatchePoints[i].queryIdx].pt.y;
-			temp1.at<float>(0, 2) = 1;
-			temp2.at<float>(0, 0) = keyPoint2[goodMatchePoints[i].trainIdx].pt.x;
-			temp2.at<float>(1, 0) = keyPoint2[goodMatchePoints[i].trainIdx].pt.y;
-			temp2.at<float>(2, 0) = 1;
-
-			result = temp1*fundemental*temp2;
-			results.push_back(result.at<float>(0, 0));
-			double tempresult = abs(result.at<float>(0, 0));
-			if (tempresult < treshold)
-				tempM++;
-		}
-		if (tempM > M)
-		{
-			M = tempM;
-			select = random;
-		}
-		if (iternum > 100)
-		{
-			cout << "Maching Numbers: " << M << " over " << goodMatchePoints.size() << endl;
-			for (int i = 0; i < 8; i++)
-				printf("-- Using Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", random[i], goodMatchePoints[random[i]].queryIdx, goodMatchePoints[random[i]].trainIdx);
-			return select;
-			break;
-		}
-	}
-
+//	vector<cv::Point2d> projectedPoints;
+//	cv::projectPoints(PointSet1, rotation_vector, translation_vector, camera_matrix, dist_coeffs, projectedPoints);
+//
+//	for (int i = 0; i < PointSet1.size(); i++)
+//	{
+//		cout <<  "Points Compare: " << endl;
+//		cout << selPoints2[i].x << " " << selPoints2[i].y << endl;
+//		cout << projectedPoints[i].x << " " << projectedPoints[i].y << endl;
+//	}
 }
