@@ -299,7 +299,7 @@ int main()
 
 	//2.Solve R & T with SolvePnP.
 	int choose = -1;
-	SolveSp(RanscSet1, RANSCPoints2, intrinsic, &Rotation0, &Transit0, true);
+	SolveSp(RanscSet1, RANSCPoints2, intrinsic, &Rotation0, &Transit0, false);
 
 	//choose = ChooseRT(Rotation1, Rotation2, Transit, intrinsic, PointSet1, PointSet2);
 
