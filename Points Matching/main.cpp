@@ -25,7 +25,7 @@ int main()
 	img2 = image02.clone();
 
 	//Extracting SURF feature.    
-	SurfFeatureDetector surfDetector(6000);  //Set hessianThreshold  
+	SurfFeatureDetector surfDetector(5000);  //Set hessianThreshold  
 	vector<KeyPoint> keyPoint1, keyPoint2;
 	surfDetector.detect(image1, keyPoint1);
 	surfDetector.detect(image2, keyPoint2);
@@ -75,6 +75,23 @@ int main()
 	cv::Mat fundemental;
 	Mat EssentialMatrix;
 
+	//Define Intrinsic Matrix
+	Mat intrinsic = Mat::zeros(3, 3, CV_64F);
+	Mat intrinsicT = Mat::zeros(3, 3, CV_64F);
+	//depth camera intrinsic.
+	//intrinsic.at<double>(0, 0) = 365.299;
+	//intrinsic.at<double>(1, 1) = 365.299;
+	//intrinsic.at<double>(2, 2) = 1;
+	//intrinsic.at<double>(0, 2) = 256.398;
+	//intrinsic.at<double>(1, 2) = 206.882;
+	//estimated color camera intrinsic.
+	intrinsic.at<double>(0, 0) = 1082.628;
+	intrinsic.at<double>(1, 1) = 1082.628;
+	intrinsic.at<double>(2, 2) = 1;
+	intrinsic.at<double>(0, 2) = 960.125;
+	intrinsic.at<double>(1, 2) = 539.314;
+	transpose(intrinsic, intrinsicT);
+
 	/*
 	//Test Matches.
 	goodMatchePoints.erase(goodMatchePoints.begin());
@@ -110,14 +127,14 @@ int main()
 		if ((int)depth01.at<uchar>(y1, x1) != 255)
 		{
 			depth1 = (int)depth01.at<Vec3b>(y1, x1)[2] * 1000 + (int)depth01.at<Vec3b>(y1, x1)[1] * 100 + (int)depth01.at<Vec3b>(y1, x1)[0];
-			if (depth1 > 5000)
+			if (depth1 > 8000)
 				depth1 = 0;
 			//cout << (int)depth01.at<Vec3b>(y1, x1)[2] << "   " << (int)depth01.at<Vec3b>(y1, x1)[1] << "   " << (int)depth01.at<Vec3b>(y1, x1)[0] << endl;
 		}
 		if ((int)depth02.at<uchar>(y2, x2) != 255)
 		{
 			depth2 = (int)depth02.at<Vec3b>(y2, x2)[2] * 1000 + (int)depth02.at<Vec3b>(y2, x2)[1] * 100 + (int)depth02.at<Vec3b>(y2, x2)[0];
-			if (depth2 > 5000)
+			if (depth2 > 8000)
 				depth2 = 0;
 		}
 		if (depth1 > 500 && depth2 > 500)
@@ -166,11 +183,12 @@ int main()
 	}
 
 	//Using 8-Points Algorithm to obtain Fundamental Matrix.
-	vector<int> select = RANSC(keyPoint1, keyPoint2, goodMatchePoints, 0.001);
+	vector<int> select = RANSC3D(PointSet1, PointSet2, 0.001, intrinsic);
+
 	vector<DMatch> Matches;
 	for (int i = 0; i < 8; i++)
 	{
-		Matches.push_back(goodMatchePoints[select[i]]);
+		Matches.push_back(validMatchePoints[select[i]]);
 	}
 
 	for (int i = 0; i < Matches.size(); i++)
@@ -184,6 +202,26 @@ int main()
 	KeyPoint::convert(keyPoint2, RANSCPoints2, RANSCIndexes2);
 
 
+	//Construct a ransac 3D point set.
+	vector<cv::Point3d> RanscSet1(RANSCPoints1.size());
+	vector<cv::Point3d> RanscSet2(RANSCPoints2.size());
+
+	for (int i = 0; i < RANSCPoints1.size(); i++)
+	{
+		double u1 = RANSCPoints1[i].x;
+		double v1 = RANSCPoints1[i].y;
+		RanscSet1[i].x = RANSCPoints1[i].x;
+		RanscSet1[i].y = RANSCPoints1[i].y;
+		double d1 = (int)depth01.at<Vec3b>(v1, u1)[2] * 1000 + (int)depth01.at<Vec3b>(v1, u1)[1] * 100 + (int)depth01.at<Vec3b>(v1, u1)[0];
+		RanscSet1[i].z = d1;
+		double u2 = RANSCPoints2[i].x;
+		double v2 = RANSCPoints2[i].y;
+		RanscSet2[i].x = RANSCPoints2[i].x;
+		RanscSet2[i].y = RANSCPoints2[i].y;
+		double d2 = (int)depth02.at<Vec3b>(v2, u2)[2] * 1000 + (int)depth02.at<Vec3b>(v2, u2)[1] * 100 + (int)depth02.at<Vec3b>(v2, u2)[0];
+		RanscSet2[i].z = d2;
+	}
+
 	// Compute F matrix from 8 matches
 	fundemental = cv::findFundamentalMat(
 		cv::Mat(RANSCPoints1), // points in first image
@@ -193,7 +231,7 @@ int main()
 	////Now we get the Fundamental Matrix F.
 	//cv::Mat F = Mat::zeros(3, 3, CV_64F);
 	//double value = 0;
-	//F = findF(RANSCPoints1, RANSCPoints2, &value);
+	//F = findF3D(RANSCPoints1, RANSCPoints2, &value);
 
 	////Correct Matches.
 	////cv::correctMatches(fundemental, usePoints1, usePoints2, newpoint1, newpoint2);
@@ -240,21 +278,6 @@ int main()
 
 
 	//find Essential Matrix.
-	Mat intrinsic = Mat::zeros(3, 3, CV_64F);
-	Mat intrinsicT = Mat::zeros(3, 3, CV_64F);
-	//depth camera intrinsic.
-	//intrinsic.at<double>(0, 0) = 365.299;
-	//intrinsic.at<double>(1, 1) = 365.299;
-	//intrinsic.at<double>(2, 2) = 1;
-	//intrinsic.at<double>(0, 2) = 256.398;
-	//intrinsic.at<double>(1, 2) = 206.882;
-	//estimated color camera intrinsic.
-	intrinsic.at<double>(0, 0) = 1082.628;
-	intrinsic.at<double>(1, 1) = 1082.628;
-	intrinsic.at<double>(2, 2) = 1;
-	intrinsic.at<double>(0, 2) = 960.125;
-	intrinsic.at<double>(1, 2) = 539.314;
-	transpose(intrinsic, intrinsicT);
 	EssentialMatrix = intrinsicT*fundemental*intrinsic;
 
 	cout << "Essential Matrix" << endl;
@@ -273,10 +296,10 @@ int main()
 
 	//Correct Matches.
 	cv::correctMatches(fundemental, selPoints1, selPoints2, newpoint1, newpoint2);
-	
+
 	//2.Solve R & T with SolvePnP.
 	int choose = -1;
-	SolveSp(PointSet1, selPoints2, intrinsic, &Rotation0, &Transit0, true);
+	SolveSp(RanscSet1, RANSCPoints2, intrinsic, &Rotation0, &Transit0, true);
 
 	//choose = ChooseRT(Rotation1, Rotation2, Transit, intrinsic, PointSet1, PointSet2);
 
