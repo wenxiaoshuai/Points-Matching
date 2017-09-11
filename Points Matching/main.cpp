@@ -16,6 +16,7 @@ int main()
 	//Mat image02 = imread("img2.bmp");
 	Mat depth01 = imread("DepthImage1.jpg");
 	Mat depth02 = imread("DepthImage2.jpg");
+
 	//	cout << (int)depth02.at<uchar>(1418, 975) << endl;
 	Mat image1, image2;
 	Mat img1, img2;
@@ -206,6 +207,14 @@ int main()
 	vector<cv::Point3d> RanscSet1(RANSCPoints1.size());
 	vector<cv::Point3d> RanscSet2(RANSCPoints2.size());
 
+	//Construct a fake matching points.
+	vector<cv::Point2f> fakePoints1, fakePoints2;
+	for (int i = 0; i < RANSCPoints1.size(); i++)
+	{
+		fakePoints1.push_back(RANSCPoints1[i]);
+		fakePoints2.push_back(Point(RANSCPoints1[i].x + 200, RANSCPoints1[i].y));
+	}
+
 	for (int i = 0; i < RANSCPoints1.size(); i++)
 	{
 		double u1 = RANSCPoints1[i].x;
@@ -214,18 +223,21 @@ int main()
 		RanscSet1[i].y = RANSCPoints1[i].y;
 		double d1 = (int)depth01.at<Vec3b>(v1, u1)[2] * 1000 + (int)depth01.at<Vec3b>(v1, u1)[1] * 100 + (int)depth01.at<Vec3b>(v1, u1)[0];
 		RanscSet1[i].z = d1;
+		cout << "RANSC Set1: " << RanscSet1[i].x << " " << RanscSet1[i].y << " " << RanscSet1[i].z << endl;
 		double u2 = RANSCPoints2[i].x;
 		double v2 = RANSCPoints2[i].y;
-		RanscSet2[i].x = RANSCPoints2[i].x;
-		RanscSet2[i].y = RANSCPoints2[i].y;
+		RanscSet2[i].x = RANSCPoints1[i].x+200;
+		RanscSet2[i].y = RANSCPoints1[i].y;
 		double d2 = (int)depth02.at<Vec3b>(v2, u2)[2] * 1000 + (int)depth02.at<Vec3b>(v2, u2)[1] * 100 + (int)depth02.at<Vec3b>(v2, u2)[0];
-		RanscSet2[i].z = d2;
+		RanscSet2[i].z = d1;
+		cout << "RANSC Set2: " << RanscSet2[i].x << " " << RanscSet2[i].y << " " << RanscSet2[i].z << endl;
+		cout << "---------------------------------" << endl;
 	}
 
 	// Compute F matrix from 8 matches
 	fundemental = cv::findFundamentalMat(
-		cv::Mat(RANSCPoints1), // points in first image
-		cv::Mat(RANSCPoints2), // points in second image
+		cv::Mat(fakePoints1), // points in first image
+		cv::Mat(fakePoints2), // points in second image
 		CV_FM_8POINT); // 8-point method
 
 	////Now we get the Fundamental Matrix F.
@@ -290,8 +302,10 @@ int main()
 	Mat Rotation1 = Mat::zeros(3, 3, CV_64F);
 	Mat Rotation2 = Mat::zeros(3, 3, CV_64F);
 	Mat Transit = Mat::zeros(3, 1, CV_64F);
-	Mat Rotation0 = Mat::zeros(3, 3, CV_64F);
-	Mat Transit0 = Mat::zeros(3, 1, CV_64F);
+	Mat PnP_R1 = Mat::zeros(3, 3, CV_64F);
+	Mat PnP_T1 = Mat::zeros(3, 1, CV_64F);
+	Mat PnP_R2 = Mat::zeros(3, 3, CV_64F);
+	Mat PnP_T2 = Mat::zeros(3, 1, CV_64F);
 	SolveRt(EssentialMatrix, &Rotation1, &Rotation2, &Transit);
 
 	//Correct Matches.
@@ -299,9 +313,10 @@ int main()
 
 	//2.Solve R & T with SolvePnP.
 	int choose = -1;
-	SolveSp(RanscSet1, RANSCPoints2, intrinsic, &Rotation0, &Transit0, false);
+	SolveSp(RanscSet1, fakePoints2, intrinsic, &PnP_R1, &PnP_T1, true);
+	SolveSp(RanscSet2, fakePoints1, intrinsic, &PnP_R2, &PnP_T2, true);
 
-	//choose = ChooseRT(Rotation1, Rotation2, Transit, intrinsic, PointSet1, PointSet2);
+	choose = ChooseRT2(PnP_R1, Rotation1, PnP_T2, intrinsic, RanscSet1, RanscSet2);
 
 
 
@@ -360,7 +375,7 @@ int main()
 	Mat imageOutput;//UsingMatches
 	cv::drawMatches(image01, keyPoint1, image02, keyPoint2, Matches, imageOutput, Scalar::all(-1),
 		Scalar::all(-1), vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-	cv::imshow("Mathch Points", imageOutput);
+	//cv::imshow("Mathch Points", imageOutput);
 
 	// Draw Epipolar Lines.
 	std::vector<cv::Vec3f> lines1;

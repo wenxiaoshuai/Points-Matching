@@ -78,6 +78,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>F:\Program Files\OpenCV 2.4.13\opencv\build\include;F:\Program Files\OpenCV 2.4.13\opencv\build\include\opencv;F:\Program Files\OpenCV 2.4.13\opencv\build\include\opencv2;$(IncludePath)</IncludePath>
+    <LibraryPath>F:\Program Files\OpenCV 2.4.13\opencv\build\x64\vc12\lib;F:\Program Files\OpenCV 2.4.13\opencv\build\x86\vc12\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

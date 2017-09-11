@@ -179,9 +179,22 @@ void SolveRt(Mat Essential, Mat* Rotation1, Mat* Rotation2, Mat* Transit)
 	(*Transit).at<double>(0, 0) = Tx.at<double>(2, 1);
 	(*Transit).at<double>(1, 0) = Tx.at<double>(0, 2);
 	(*Transit).at<double>(2, 0) = Tx.at<double>(1, 0);
-	cout << "!!!!!!!!!!!!!!!!!" << endl << Tx.at<double>(2, 1)*Tx.at<double>(2, 1) + Tx.at<double>(0, 2)*Tx.at<double>(0, 2) + Tx.at<double>(1, 0)*Tx.at<double>(1, 0);
+	cout << "Check Point Here:|T|= " << Tx.at<double>(2, 1)*Tx.at<double>(2, 1) + Tx.at<double>(0, 2)*Tx.at<double>(0, 2) + Tx.at<double>(1, 0)*Tx.at<double>(1, 0) << endl;
 	//there are four possible solution.
 	//(R1,t),(R1,-t),(R2,t),(R2,-t)
+	//Output the Results.
+	cout << "Rotation1 Matrix" << endl;
+	cout << (*Rotation1).at<double>(0, 0) << " " << (*Rotation1).at<double>(0, 1) << " " << (*Rotation1).at<double>(0, 2) << endl;
+	cout << (*Rotation1).at<double>(1, 0) << " " << (*Rotation1).at<double>(1, 1) << " " << (*Rotation1).at<double>(1, 2) << endl;
+	cout << (*Rotation1).at<double>(2, 0) << " " << (*Rotation1).at<double>(2, 1) << " " << (*Rotation1).at<double>(2, 2) << endl;
+	cout << "Rotation2 Matrix" << endl;
+	cout << (*Rotation2).at<double>(0, 0) << " " << (*Rotation2).at<double>(0, 1) << " " << (*Rotation2).at<double>(0, 2) << endl;
+	cout << (*Rotation2).at<double>(1, 0) << " " << (*Rotation2).at<double>(1, 1) << " " << (*Rotation2).at<double>(1, 2) << endl;
+	cout << (*Rotation2).at<double>(2, 0) << " " << (*Rotation2).at<double>(2, 1) << " " << (*Rotation2).at<double>(2, 2) << endl;
+	cout << "Translation Vector" << endl;
+	cout << (*Transit).at<double>(0, 0) << endl;
+	cout << (*Transit).at<double>(1, 0) << endl;
+	cout << (*Transit).at<double>(2, 0) << endl;
 }
 
 void function(Mat M, Mat R, Mat T, Mat* temp1, Mat* temp2)
@@ -395,7 +408,7 @@ int ChooseRT2(Mat R1, Mat R2, Mat T, Mat intrinsic, vector<cv::Point3d> Point1, 
 	}
 	cout << "Final Decision:" << endl;
 	//cout << "Case " << MatchIndex << ", Match Number is " << MatchNum << " over " << Point1.size() << " ,Average Loss is " << Loss / Point1.size() << endl;
-	if (MatchIndex == 0)
+	//if (MatchIndex == 0)
 	{
 		cout << "Rotation Matrix" << endl;
 		cout << R1.at<double>(0, 0) << " " << R1.at<double>(0, 1) << " " << R1.at<double>(0, 2) << endl;
@@ -417,7 +430,7 @@ int ChooseRT2(Mat R1, Mat R2, Mat T, Mat intrinsic, vector<cv::Point3d> Point1, 
 		cout << -T.at<double>(1, 0) << endl;
 		cout << -T.at<double>(2, 0) << endl;
 	}
-	if (MatchIndex == 2)
+	//if (MatchIndex == 2)
 	{
 		cout << "Rotation Matrix" << endl;
 		cout << R2.at<double>(0, 0) << " " << R2.at<double>(0, 1) << " " << R2.at<double>(0, 2) << endl;
@@ -718,9 +731,9 @@ cv::Mat findF3D(const std::vector<cv::Point3d> pts_prev, const std::vector<cv::P
 	cv::Mat Fpre = vt.row(8).reshape(0, 3);
 
 	cv::SVDecomp(Fpre, w, u, vt, cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
-	cout << "W(1) = " << w.at<double>(0) << endl;
-	cout << "W(2) = " << w.at<double>(1) << endl;
-	cout << "W(3) = " << w.at<double>(2) << endl;
+	//cout << "W(1) = " << w.at<double>(0) << endl;
+	//cout << "W(2) = " << w.at<double>(1) << endl;
+	//cout << "W(3) = " << w.at<double>(2) << endl;
 	w.at<double>(2) = 0;
 
 	cv::Mat F_norm = u*cv::Mat::diag(w)*vt;
@@ -740,7 +753,7 @@ cv::Mat findF3D(const std::vector<cv::Point3d> pts_prev, const std::vector<cv::P
 			temp2.at<double>(2, 0) = next[i].z;
 
 			result = temp1*Fpre*temp2;
-			cout << "This is test in RANSC: " << abs(result.at<double>(0, 0)) << endl;
+			//cout << "This is test in RANSC: " << abs(result.at<double>(0, 0)) << endl;
 
 		}
 
@@ -898,8 +911,7 @@ vector<int> RANSC3D(vector<cv::Point3d> PointSet1, vector<cv::Point3d> PointSet2
 		Mat temp2 = Mat::zeros(3, 1, CV_64F);
 		Mat result;
 		//cout << selPoints1[0].x << endl;
-		vector<double> results;
-		cout << "Test Results:" << endl;
+		//cout << "Test Results:" << endl;
 		for (int i = 0; i < prev.size(); i++)
 		{
 			temp1.at<double>(0, 0) = prev[i].x;
@@ -910,9 +922,8 @@ vector<int> RANSC3D(vector<cv::Point3d> PointSet1, vector<cv::Point3d> PointSet2
 			temp2.at<double>(2, 0) = next[i].z;
 
 			result = temp1*fundemental*temp2;
-			results.push_back(result.at<double>(0, 0));
 			double tempresult = abs(result.at<double>(0, 0));
-			cout << tempresult << endl;
+			//cout << tempresult << endl;
 			if (tempresult < treshold)
 				tempM++;
 		}
