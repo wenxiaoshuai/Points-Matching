@@ -14,9 +14,13 @@ int main()
 	Mat image02 = imread("ColorImage2.jpg");
 	//Mat image01 = imread("img1.bmp");
 	//Mat image02 = imread("img2.bmp");
-	Mat depth01 = imread("DepthImage1.jpg");
-	Mat depth02 = imread("DepthImage2.jpg");
 
+	FileStorage fs1("DepthData1.xml", FileStorage::READ);
+	Mat depth01;
+	fs1["depth"] >> depth01;
+	FileStorage fs2("DepthData2.xml", FileStorage::READ);
+	Mat depth02;
+	fs2["depth"] >> depth02;
 	//	cout << (int)depth02.at<uchar>(1418, 975) << endl;
 	Mat image1, image2;
 	Mat img1, img2;
@@ -54,6 +58,7 @@ int main()
 	vector<DMatch> goodMatchePoints;
 	vector<DMatch> UsingMatches;
 	vector<DMatch> validMatchePoints;
+	vector<DMatch> test;
 	SelectMatching(matchePoints, matchePoints2, &goodMatchePoints, &UsingMatches);
 	//Filtering the matching pairs.
 	//FilterMatching(keyPoint1, keyPoint2, &goodMatchePoints);
@@ -86,11 +91,11 @@ int main()
 	//intrinsic.at<double>(0, 2) = 256.398;
 	//intrinsic.at<double>(1, 2) = 206.882;
 	//estimated color camera intrinsic.
-	intrinsic.at<double>(0, 0) = 1082.628;
-	intrinsic.at<double>(1, 1) = 1082.628;
+	intrinsic.at<double>(0, 0) = 1082.628;//1033.174
+	intrinsic.at<double>(1, 1) = 1082.628;//1032.664
 	intrinsic.at<double>(2, 2) = 1;
-	intrinsic.at<double>(0, 2) = 960.125;
-	intrinsic.at<double>(1, 2) = 539.314;
+	intrinsic.at<double>(0, 2) = 960.125;//972.342
+	intrinsic.at<double>(1, 2) = 539.314;//532.647
 	transpose(intrinsic, intrinsicT);
 
 	/*
@@ -125,17 +130,17 @@ int main()
 		int y2 = keyPoint2[goodMatchePoints[i].trainIdx].pt.y;
 		int depth1 = 0;
 		int depth2 = 0;
-		if ((int)depth01.at<uchar>(y1, x1) != 255)
+		if (depth01.at<double>(y1, x1) != -1)
 		{
-			depth1 = (int)depth01.at<Vec3b>(y1, x1)[2] * 1000 + (int)depth01.at<Vec3b>(y1, x1)[1] * 100 + (int)depth01.at<Vec3b>(y1, x1)[0];
-			if (depth1 > 8000)
+			depth1 = depth01.at<double>(y1, x1);
+			if (depth1 > 5000)
 				depth1 = 0;
 			//cout << (int)depth01.at<Vec3b>(y1, x1)[2] << "   " << (int)depth01.at<Vec3b>(y1, x1)[1] << "   " << (int)depth01.at<Vec3b>(y1, x1)[0] << endl;
 		}
-		if ((int)depth02.at<uchar>(y2, x2) != 255)
+		if (depth02.at<double>(y2, x2) != -1)
 		{
-			depth2 = (int)depth02.at<Vec3b>(y2, x2)[2] * 1000 + (int)depth02.at<Vec3b>(y2, x2)[1] * 100 + (int)depth02.at<Vec3b>(y2, x2)[0];
-			if (depth2 > 8000)
+			depth2 = depth02.at<double>(y2, x2);
+			if (depth2 > 5000)
 				depth2 = 0;
 		}
 		if (depth1 > 500 && depth2 > 500)
@@ -173,18 +178,19 @@ int main()
 		double v1 = selPoints1[i].y;
 		PointSet1[i].x = selPoints1[i].x;
 		PointSet1[i].y = selPoints1[i].y;
-		double d1 = (int)depth01.at<Vec3b>(v1, u1)[2] * 1000 + (int)depth01.at<Vec3b>(v1, u1)[1] * 100 + (int)depth01.at<Vec3b>(v1, u1)[0];
+		double d1 = depth01.at<double>(v1, u1);
 		PointSet1[i].z = d1;
 		double u2 = selPoints2[i].x;
 		double v2 = selPoints2[i].y;
 		PointSet2[i].x = selPoints2[i].x;
 		PointSet2[i].y = selPoints2[i].y;
-		double d2 = (int)depth02.at<Vec3b>(v2, u2)[2] * 1000 + (int)depth02.at<Vec3b>(v2, u2)[1] * 100 + (int)depth02.at<Vec3b>(v2, u2)[0];
+		double d2 = depth02.at<double>(v2, u2);
 		PointSet2[i].z = d2;
 	}
 
 	//Using 8-Points Algorithm to obtain Fundamental Matrix.
-	vector<int> select = RANSC3D(PointSet1, PointSet2, 0.001, intrinsic);
+	vector<int> select = RANSC3D(PointSet1, PointSet2, 0.0001, intrinsic);
+	//vector<int> select = RANSC2D(keyPoint1, keyPoint2, validMatchePoints, 0.001);
 
 	vector<DMatch> Matches;
 	for (int i = 0; i < 8; i++)
@@ -221,29 +227,30 @@ int main()
 		double v1 = RANSCPoints1[i].y;
 		RanscSet1[i].x = RANSCPoints1[i].x;
 		RanscSet1[i].y = RANSCPoints1[i].y;
-		double d1 = (int)depth01.at<Vec3b>(v1, u1)[2] * 1000 + (int)depth01.at<Vec3b>(v1, u1)[1] * 100 + (int)depth01.at<Vec3b>(v1, u1)[0];
+		double d1 = depth01.at<double>(v1, u1);
 		RanscSet1[i].z = d1;
 		cout << "RANSC Set1: " << RanscSet1[i].x << " " << RanscSet1[i].y << " " << RanscSet1[i].z << endl;
 		double u2 = RANSCPoints2[i].x;
 		double v2 = RANSCPoints2[i].y;
-		RanscSet2[i].x = RANSCPoints1[i].x+200;
-		RanscSet2[i].y = RANSCPoints1[i].y;
-		double d2 = (int)depth02.at<Vec3b>(v2, u2)[2] * 1000 + (int)depth02.at<Vec3b>(v2, u2)[1] * 100 + (int)depth02.at<Vec3b>(v2, u2)[0];
-		RanscSet2[i].z = d1;
+		RanscSet2[i].x = RANSCPoints2[i].x;
+		RanscSet2[i].y = RANSCPoints2[i].y;
+		double d2 = depth02.at<double>(v2, u2);
+		RanscSet2[i].z = d2;
 		cout << "RANSC Set2: " << RanscSet2[i].x << " " << RanscSet2[i].y << " " << RanscSet2[i].z << endl;
 		cout << "---------------------------------" << endl;
 	}
 
 	// Compute F matrix from 8 matches
 	fundemental = cv::findFundamentalMat(
-		cv::Mat(fakePoints1), // points in first image
-		cv::Mat(fakePoints2), // points in second image
+		cv::Mat(RANSCPoints1), // points in first image
+		cv::Mat(RANSCPoints2), // points in second image
 		CV_FM_8POINT); // 8-point method
 
 	////Now we get the Fundamental Matrix F.
-	//cv::Mat F = Mat::zeros(3, 3, CV_64F);
+	cv::Mat F = Mat::zeros(3, 3, CV_64F);
 	//double value = 0;
-	//F = findF3D(RANSCPoints1, RANSCPoints2, &value);
+	F = findF3DF(RanscSet2, RanscSet1, intrinsic);
+
 
 	////Correct Matches.
 	////cv::correctMatches(fundemental, usePoints1, usePoints2, newpoint1, newpoint2);
@@ -297,6 +304,11 @@ int main()
 	cout << EssentialMatrix.at<double>(1, 0) << " " << EssentialMatrix.at<double>(1, 1) << " " << EssentialMatrix.at<double>(1, 2) << endl;
 	cout << EssentialMatrix.at<double>(2, 0) << " " << EssentialMatrix.at<double>(2, 1) << " " << EssentialMatrix.at<double>(2, 2) << endl;
 
+	cout << "F Matrix" << endl;
+	cout << F.at<double>(0, 0) << " " << F.at<double>(0, 1) << " " << F.at<double>(0, 2) << endl;
+	cout << F.at<double>(1, 0) << " " << F.at<double>(1, 1) << " " << F.at<double>(1, 2) << endl;
+	cout << F.at<double>(2, 0) << " " << F.at<double>(2, 1) << " " << F.at<double>(2, 2) << endl;
+
 
 	//1.Sove the R & T from Essential.
 	Mat Rotation1 = Mat::zeros(3, 3, CV_64F);
@@ -306,17 +318,30 @@ int main()
 	Mat PnP_T1 = Mat::zeros(3, 1, CV_64F);
 	Mat PnP_R2 = Mat::zeros(3, 3, CV_64F);
 	Mat PnP_T2 = Mat::zeros(3, 1, CV_64F);
-	SolveRt(EssentialMatrix, &Rotation1, &Rotation2, &Transit);
+	SolveRt(F, &Rotation1, &Rotation2, &Transit);
 
 	//Correct Matches.
-	cv::correctMatches(fundemental, selPoints1, selPoints2, newpoint1, newpoint2);
+	cv::correctMatches(F, RANSCPoints1, RANSCPoints2, newpoint1, newpoint2);
+
+	Mat I = Mat::zeros(3, 3, CV_64F);
+	I.at<double>(0, 0) = 1;
+	I.at<double>(1, 1) = 1;
+	I.at<double>(2, 2) = 1;
 
 	//2.Solve R & T with SolvePnP.
 	int choose = -1;
-	SolveSp(RanscSet1, fakePoints2, intrinsic, &PnP_R1, &PnP_T1, true);
-	SolveSp(RanscSet2, fakePoints1, intrinsic, &PnP_R2, &PnP_T2, true);
+	SolveSp(RanscSet1, RANSCPoints2, intrinsic, &PnP_R1, &PnP_T1, true);
+	ValidatePnp(PnP_R1, PnP_T1, intrinsic, RanscSet1, RanscSet2);
+	//Mat testR = Mat::zeros(3, 3, CV_64F);
+	//testR.at<double>(0, 0) = 1;
+	//testR.at<double>(1, 1) = 1;
+	//testR.at<double>(2, 2) = 1;
+	//Mat testT = Mat::zeros(3, 1, CV_64F);
+	//testT.at<double>(0, 0) = -0.217;
+	//testT.at<double>(1, 0) = 0;
+	//testT.at<double>(2, 0) = 0
 
-	choose = ChooseRT2(PnP_R1, Rotation1, PnP_T2, intrinsic, RanscSet1, RanscSet2);
+	//choose = ChooseRT2(PnP_R1, Rotation1, PnP_T1, intrinsic, RanscSet1, RanscSet2);
 
 
 
@@ -375,22 +400,15 @@ int main()
 	Mat imageOutput;//UsingMatches
 	cv::drawMatches(image01, keyPoint1, image02, keyPoint2, Matches, imageOutput, Scalar::all(-1),
 		Scalar::all(-1), vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-	//cv::imshow("Mathch Points", imageOutput);
+	cv::imshow("Mathch Points", imageOutput);
 
 	// Draw Epipolar Lines.
 	std::vector<cv::Vec3f> lines1;
-	std::vector<cv::Vec3f> lines2;
 	cv::computeCorrespondEpilines(
 		cv::Mat(newpoint1), // image points
 		1, // in image 1 (can also be 2)
 		fundemental, // F matrix
 		lines1); // vector of epipolar lines
-				 // for all epipolar lines
-	cv::computeCorrespondEpilines(
-		cv::Mat(newpoint2), // image points
-		2, // in image 1 (can also be 2)
-		fundemental, // F matrix
-		lines2); // vector of epipolar lines
 				 // for all epipolar lines
 	for (vector<cv::Vec3f>::const_iterator it = lines1.begin();
 		it != lines1.end(); ++it) {
@@ -401,18 +419,8 @@ int main()
 			(*it)[0] * img2.cols) / (*it)[1]),
 			cv::Scalar(255, 255, 255));
 	}
-	for (vector<cv::Vec3f>::const_iterator it = lines2.begin();
-		it != lines2.end(); ++it) {
-		// draw the line between first and last column
-		cv::line(img1,
-			cv::Point(0, -(*it)[2] / (*it)[1]),
-			cv::Point(img1.cols, -((*it)[2] +
-			(*it)[0] * img1.cols) / (*it)[1]),
-			cv::Scalar(255, 255, 255));
-	}
-	//cv::imshow("Image Epilines in img1", img1);
-	//cv::imshow("Image Epilines in img2", img2);
 
+	cv::imshow("Image Epilines in img2", img2);
 	cv::waitKey();
 	return 0;
 }

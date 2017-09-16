@@ -1,27 +1,31 @@
 ﻿  main.cpp
-d:\program files\vs_project\points-matching\points matching\header.h(81): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\header.h(554): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\header.h(554): warning C4267: “初始化”: 从“size_t”转换到“const int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\header.h(585): warning C4244: “*=”: 从“const double”转换到“float”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\header.h(586): warning C4244: “*=”: 从“const double”转换到“float”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\header.h(598): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\header.h(598): warning C4267: “初始化”: 从“size_t”转换到“const int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\header.h(666): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\header.h(666): warning C4267: “初始化”: 从“size_t”转换到“const int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\header.h(781): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\header.h(850): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(122): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(123): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(124): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(125): warning C4244: “初始化”: 从“float”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(176): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(182): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(215): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(224): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(231): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(399): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(401): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(408): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
-d:\program files\vs_project\points-matching\points matching\main.cpp(410): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
-  Points Matching.vcxproj -> D:\Program Files\VS_Project\Points-Matching\x64\Debug\Points Matching.exe
-  Points Matching.vcxproj -> D:\Program Files\VS_Project\Points-Matching\x64\Debug\Points Matching.pdb (Full PDB)
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(42): warning C4566: character represented by universal-character-name '\uFF1A' cannot be represented in the current code page (1252)
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(43): warning C4566: character represented by universal-character-name '\uFF1A' cannot be represented in the current code page (1252)
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(81): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(604): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(604): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(635): warning C4244: '*=': conversion from 'const double' to 'float', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(636): warning C4244: '*=': conversion from 'const double' to 'float', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(648): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(648): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(716): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(716): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(810): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(810): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(905): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.h(974): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(127): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(128): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(129): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(130): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(135): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(142): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(181): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(187): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(221): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(230): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(237): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(417): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(419): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+  Points Matching.vcxproj -> C:\Users\xli22\documents\visual studio 2015\Projects\Points Matching\x64\Debug\Points Matching.exe
+  Points Matching.vcxproj -> C:\Users\xli22\documents\visual studio 2015\Projects\Points Matching\x64\Debug\Points Matching.pdb (Full PDB)
