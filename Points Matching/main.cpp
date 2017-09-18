@@ -60,7 +60,7 @@ int main()
 	vector<DMatch> validMatchePoints;
 	vector<DMatch> test;
 	SelectMatching(matchePoints, matchePoints2, &goodMatchePoints, &UsingMatches);
-	
+
 	//Filtering the matching pairs.
 	//FilterMatching(keyPoint1, keyPoint2, &goodMatchePoints);
 
@@ -186,14 +186,6 @@ int main()
 	vector<cv::Point3d> RanscSet1(RANSCPoints1.size());
 	vector<cv::Point3d> RanscSet2(RANSCPoints2.size());
 
-	//Construct a fake matching points.
-	vector<cv::Point2f> fakePoints1, fakePoints2;
-	for (int i = 0; i < RANSCPoints1.size(); i++)
-	{
-		fakePoints1.push_back(RANSCPoints1[i]);
-		fakePoints2.push_back(Point(RANSCPoints1[i].x + 200, RANSCPoints1[i].y));
-	}
-
 	for (int i = 0; i < RANSCPoints1.size(); i++)
 	{
 		double u1 = RANSCPoints1[i].x;
@@ -219,9 +211,9 @@ int main()
 		cv::Mat(RANSCPoints1), // points in first image
 		cv::Mat(RANSCPoints2), // points in second image
 		CV_FM_8POINT); // 8-point method
-    //2. 3D 8-points Algorithm.
+	//2. 3D 8-points Algorithm.
 	cv::Mat F = Mat::zeros(3, 3, CV_64F);
-	F = findF3DF(RanscSet2, RanscSet1, intrinsic);
+	//F = findF3DF(RanscSet2, RanscSet1, intrinsic);
 	////Now we get the Fundamental Matrix F.
 
 	//find Essential Matrix.
@@ -232,27 +224,30 @@ int main()
 	cout << EssentialMatrix.at<double>(1, 0) << " " << EssentialMatrix.at<double>(1, 1) << " " << EssentialMatrix.at<double>(1, 2) << endl;
 	cout << EssentialMatrix.at<double>(2, 0) << " " << EssentialMatrix.at<double>(2, 1) << " " << EssentialMatrix.at<double>(2, 2) << endl;
 
-	cout << "F Matrix" << endl;
-	cout << F.at<double>(0, 0) << " " << F.at<double>(0, 1) << " " << F.at<double>(0, 2) << endl;
-	cout << F.at<double>(1, 0) << " " << F.at<double>(1, 1) << " " << F.at<double>(1, 2) << endl;
-	cout << F.at<double>(2, 0) << " " << F.at<double>(2, 1) << " " << F.at<double>(2, 2) << endl;
+	//cout << "F Matrix" << endl;
+	//cout << F.at<double>(0, 0) << " " << F.at<double>(0, 1) << " " << F.at<double>(0, 2) << endl;
+	//cout << F.at<double>(1, 0) << " " << F.at<double>(1, 1) << " " << F.at<double>(1, 2) << endl;
+	//cout << F.at<double>(2, 0) << " " << F.at<double>(2, 1) << " " << F.at<double>(2, 2) << endl;
 
 
-	//1.Sove the R & T from Essential.
+	//1.Solve the R & T from Essential.
 	Mat Rotation1 = Mat::zeros(3, 3, CV_64F);
 	Mat Rotation2 = Mat::zeros(3, 3, CV_64F);
 	Mat Transit = Mat::zeros(3, 1, CV_64F);
 	SolveRt(EssentialMatrix, &Rotation1, &Rotation2, &Transit);
 	ChooseRT2(Rotation1, Rotation2, &Transit, intrinsic, RanscSet1, RanscSet2);
-
+	ValidatePnp(Rotation2, Transit, intrinsic, RanscSet1, RanscSet2);
 	//2.Solve R & T with SolvePnP.
-	Mat PnP_R1 = Mat::zeros(3, 3, CV_64F);
-	Mat PnP_T1 = Mat::zeros(3, 1, CV_64F);
-	Mat PnP_R2 = Mat::zeros(3, 3, CV_64F);
-	Mat PnP_T2 = Mat::zeros(3, 1, CV_64F);
-	SolveSp(RanscSet1, RANSCPoints2, intrinsic, &PnP_R1, &PnP_T1, false);
-	ValidatePnp(PnP_R1, PnP_T1, intrinsic, RanscSet1, RanscSet2);
+	Mat PnP_R = Mat::zeros(3, 3, CV_64F);
+	Mat PnP_T = Mat::zeros(3, 1, CV_64F);
+	Mat Reg_R = Mat::zeros(3, 3, CV_64F);
+	Mat Reg_T = Mat::zeros(3, 1, CV_64F);
+	SolveSp(RanscSet1, RANSCPoints2, intrinsic, &PnP_R, &PnP_T, false);
+	ValidatePnp(PnP_R, PnP_T, intrinsic, RanscSet1, RanscSet2);
 
+	//3. Solve R & T from 3D Registration.
+	Registration(RanscSet1, RanscSet2, intrinsic, &Reg_R, &Reg_T);
+	ValidatePnp(Reg_R, Reg_T, intrinsic, RanscSet1, RanscSet2);
 
 	//Write the 3D points to a file for ICP Alg.
 	//tofile(intrinsic, PointSet1, PointSet2);
@@ -262,7 +257,7 @@ int main()
 	//Mat H2 = Mat::zeros(3, 1, CV_64F);
 	//	function(intrinsic, Rotation0, Transit0, &H1, &H2);
 	//	function(intrinsic, Rotation1, Transit, &H1, &H2);
-;
+	;
 
 	//Mat showimg(1080, 1920, CV_8UC3, Scalar(255, 255, 255));
 	//cv::imshow("Show Image", showimg);
@@ -299,7 +294,7 @@ int main()
 	//imwrite("show_PnPRansc.jpg", showimg);
 
 	//Draw Good Matching Points.
-	
+
 	//Correct Matches.
 	cv::correctMatches(F, RANSCPoints1, RANSCPoints2, newpoint1, newpoint2);
 	Mat imageOutput;//UsingMatches

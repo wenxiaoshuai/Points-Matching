@@ -58,6 +58,9 @@ void SolveSp(vector<cv::Point3d> PointSet1, vector<cv::Point2f> selPoints2, Mat 
 //Validating the results from SolvePnp routine.
 void ValidatePnp(Mat R, Mat t, Mat intrinsic, vector<cv::Point3d> Point1, vector<cv::Point3d> Point2);
 
+//Using Registartion to calculate the R and t.
+cv::Point3d findCentroids(vector<cv::Point3d> PointSet);
+void Registration(vector<cv::Point3d> PointSet1, vector<cv::Point3d> PointSet2, Mat intrinsic, Mat* Rotation, Mat* Transit);
+
 //Write 3D points sets to file in order to porcessing the GO-ICP Algorithm.
 void tofile(Mat intrinsic, vector<cv::Point3d> Point1, vector<cv::Point3d> Point2);
-

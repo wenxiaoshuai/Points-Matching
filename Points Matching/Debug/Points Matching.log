@@ -1,7 +1,0 @@
-﻿  main.cpp
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(51): warning C4018: '<': signed/unsigned mismatch
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(58): warning C4566: character represented by universal-character-name '\uFF1A' cannot be represented in the current code page (1252)
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(59): warning C4566: character represented by universal-character-name '\uFF1A' cannot be represented in the current code page (1252)
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(63): warning C4018: '<': signed/unsigned mismatch
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(74): warning C4018: '<': signed/unsigned mismatch
-opencv_core2413d.lib(opencv_core2413d.dll) : fatal error LNK1112: module machine type 'x64' conflicts with target machine type 'X86'

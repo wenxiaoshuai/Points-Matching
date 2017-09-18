@@ -42,7 +42,7 @@ void SelectMatching(vector<DMatch> matchPoints, vector<DMatch> matchPoints2, vec
 	for (int i = 0; i < matchPoints.size(); i++)
 	{
 		int match = matchPoints[i].trainIdx;
-		if (matchPoints2[match].trainIdx == matchPoints[i].queryIdx)
+		if (matchPoints2[match].trainIdx == matchPoints[i].queryIdx&&matchPoints[i].distance < minMatch + (maxMatch - minMatch) / 2)
 		{
 			(*goodMatchePoints).push_back(matchPoints[i]);
 		}
@@ -1026,7 +1026,7 @@ vector<int> RANSC3D(vector<cv::Point3d> PointSet1, vector<cv::Point3d> PointSet2
 			M = tempM;
 			select = random;
 		}
-		if (iternum > 100)
+		if (iternum > 200)
 		{
 			cout << "Maching Numbers: " << M << " over " << PointSet1.size() << endl;
 			return select;
@@ -1082,5 +1082,101 @@ void SolveSp(vector<cv::Point3d> PointSet1, vector<cv::Point2f> selPoints2, Mat 
 	//	cout << selPoints2[i].x << " " << selPoints2[i].y << endl;
 	//	cout << projectedPoints[i].x << " " << projectedPoints[i].y << endl;
 	//}
+
+}
+
+cv::Point3d findCentroids(vector<cv::Point3d> PointSet)
+{
+	double x_c = 0;
+	double y_c = 0;
+	double z_c = 0;
+	int size = PointSet.size();
+	for (int i = 0; i < size; i++)
+	{
+		x_c += PointSet[i].x;
+		y_c += PointSet[i].y;
+		z_c += PointSet[i].z;
+	}
+	return (Point3d(x_c / size, y_c / size, z_c / size));
+}
+
+void Registration(vector<cv::Point3d> PointSet1, vector<cv::Point3d> PointSet2, Mat intrinsic, Mat* Rotation, Mat* Transit)
+{
+	double fx = intrinsic.at<double>(0, 0);
+	double fy = intrinsic.at<double>(1, 1);
+	double cx = intrinsic.at<double>(0, 2);
+	double cy = intrinsic.at<double>(1, 2);
+	Mat R = Mat::zeros(3, 3, CV_64F);
+	Mat T = Mat::zeros(3, 1, CV_64F);
+	int N = PointSet1.size();
+
+	for (int i = 0; i < N; i++)
+	{
+		PointSet1[i].z = PointSet1[i].z / 1000;
+		PointSet1[i].x = PointSet1[i].z *(PointSet1[i].x - cx) / fx;
+		PointSet1[i].y = PointSet1[i].z *(PointSet1[i].y - cy) / fy;
+
+		PointSet2[i].z = PointSet2[i].z / 1000;
+		PointSet2[i].x = PointSet2[i].z *(PointSet2[i].x - cx) / fx;
+		PointSet2[i].y = PointSet2[i].z *(PointSet2[i].y - cy) / fy;
+	}
+
+	Point3d c1 = findCentroids(PointSet1);
+	Point3d c2 = findCentroids(PointSet2);
+
+	Mat H = Mat::zeros(3, 3, CV_64F);
+	Mat temp1 = Mat::zeros(3, 1, CV_64F);
+	Mat temp2 = Mat::zeros(1, 3, CV_64F);
+
+	for (int i = 0; i < N; i++)
+	{
+		temp1.at<double>(0, 0) = PointSet1[i].x - c1.x;
+		temp1.at<double>(1, 0) = PointSet1[i].y - c1.y;
+		temp1.at<double>(2, 0) = PointSet1[i].z - c1.z;
+
+		temp2.at<double>(0, 0) = PointSet2[i].x - c2.x;
+		temp2.at<double>(0, 1) = PointSet2[i].y - c2.y;
+		temp2.at<double>(0, 2) = PointSet2[i].z - c2.z;
+
+		H = H + temp1*temp2;
+	}
+	Mat U, w, VT;
+	cv::SVD fsvd(H);
+	U = fsvd.u;
+	w = fsvd.w;
+	VT = fsvd.vt;
+
+	R = VT.t()*U.t();
+	cout << "Rotation Vector " << endl;
+	cout << R.at<double>(0, 0) << " " << R.at<double>(0, 1) << " " << R.at<double>(0, 2) << endl;
+	cout << R.at<double>(1, 0) << " " << R.at<double>(1, 1) << " " << R.at<double>(1, 2) << endl;
+	cout << R.at<double>(2, 0) << " " << R.at<double>(2, 1) << " " << R.at<double>(2, 2) << endl;
+
+	cout << "Check Point: |R|>0 ==> " << determinant(R) << endl;
+	if (determinant(R) < 0)
+	{
+		R.col(2) = -R.col(2);
+	}
+
+	Mat c_1 = Mat::zeros(3, 1, CV_64F);
+	Mat c_2 = Mat::zeros(3, 1, CV_64F);
+
+	c_1.at<double>(0, 0) = c1.x;
+	c_1.at<double>(1, 0) = c1.y;
+	c_1.at<double>(2, 0) = c1.z;
+
+	c_2.at<double>(0, 0) = c2.x;
+	c_2.at<double>(1, 0) = c2.y;
+	c_2.at<double>(2, 0) = c2.z;
+
+	T = -R*c_1 + c_2;
+
+	cout << "Translation Vector" << endl;
+	cout << T.at<double>(0, 0) << endl;
+	cout << T.at<double>(1, 0) << endl;
+	cout << T.at<double>(2, 0) << endl;
+
+	(*Rotation) = R;
+	(*Transit) = T;
 
 }

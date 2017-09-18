@@ -1,20 +1,2 @@
-﻿  Header.cpp
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(39): warning C4566: character represented by universal-character-name '\uFF1A' cannot be represented in the current code page (1252)
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(40): warning C4566: character represented by universal-character-name '\uFF1A' cannot be represented in the current code page (1252)
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(71): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(344): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(345): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(576): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(576): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(607): warning C4244: '*=': conversion from 'const double' to 'float', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(608): warning C4244: '*=': conversion from 'const double' to 'float', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(620): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(620): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(689): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(689): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(762): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(762): warning C4267: 'initializing': conversion from 'size_t' to 'const int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(874): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\header.cpp(944): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-  Points Matching.vcxproj -> C:\Users\xli22\documents\visual studio 2015\Projects\Points Matching\x64\Debug\Points Matching.exe
+﻿  Points Matching.vcxproj -> C:\Users\xli22\documents\visual studio 2015\Projects\Points Matching\x64\Debug\Points Matching.exe
   Points Matching.vcxproj -> C:\Users\xli22\documents\visual studio 2015\Projects\Points Matching\x64\Debug\Points Matching.pdb (Full PDB)
