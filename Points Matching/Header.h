@@ -64,3 +64,5 @@ void Registration(vector<cv::Point3d> PointSet1, vector<cv::Point3d> PointSet2, 
 
 //Write 3D points sets to file in order to porcessing the GO-ICP Algorithm.
 void tofile(Mat intrinsic, vector<cv::Point3d> Point1, vector<cv::Point3d> Point2);
+
+void test(Mat image1, Mat image2);

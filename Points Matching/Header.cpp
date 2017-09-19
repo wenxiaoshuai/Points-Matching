@@ -28,7 +28,7 @@ vector<int> randvec(int Num)
 void SelectMatching(vector<DMatch> matchPoints, vector<DMatch> matchPoints2, vector<DMatch>* goodMatchePoints, vector<DMatch>* usingMatchePoints)
 {
 	//Selecting strong features.
-	double minMatch = 1;
+	double minMatch = 999999;
 	double maxMatch = 0;
 	for (int i = 0; i < matchPoints.size(); i++)
 	{
@@ -1178,5 +1178,21 @@ void Registration(vector<cv::Point3d> PointSet1, vector<cv::Point3d> PointSet2, 
 
 	(*Rotation) = R;
 	(*Transit) = T;
+}
+
+void test(Mat image1, Mat image2)
+{
+	cv::SiftFeatureDetector detector;
+	std::vector<cv::KeyPoint> keyPoint1;
+	std::vector<cv::KeyPoint> keyPoint2;
+	detector.detect(image1, keyPoint1);
+	detector.detect(image2, keyPoint2);
+	drawKeypoints(image1, keyPoint1, image1, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+	drawKeypoints(image2, keyPoint2, image2, Scalar::all(-1), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+	cv::imshow("KeyPoints of image1", image1);
+	cv::imshow("KeyPoints of image2", image2);
+	Mat imageDesc1, imageDesc2;
+	detector.compute(image1, keyPoint1, imageDesc1);
+	detector.compute(image2, keyPoint2, imageDesc2);
 
 }
