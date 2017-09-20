@@ -474,7 +474,7 @@ void ValidatePnp(Mat R, Mat t, Mat intrinsic, vector<cv::Point3d> Point1, vector
 			cout << "-----------------------------------" << endl;
 		}
 	}
-	cout << "Squared Error= " << error << endl;
+	cout << "Squared Error= " << error/Point1.size() << endl;
 }
 //Write 3D points sets to file in order to porcessing the GO-ICP Algorithm.
 void tofile(Mat intrinsic, vector<cv::Point3d> Point1, vector<cv::Point3d> Point2)

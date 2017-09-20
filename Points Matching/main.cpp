@@ -123,6 +123,10 @@ int main()
 
 	}
 
+	std::nth_element(validMatchePoints.begin(), validMatchePoints.begin() + 14, validMatchePoints.end());
+	validMatchePoints.erase(validMatchePoints.begin() + 15, validMatchePoints.end());
+
+
 	for (int i = 0; i < UsingMatches.size(); i++)
 	{
 		usepointIndexes1.push_back(UsingMatches[i].queryIdx);

@@ -1,2 +1,15 @@
-﻿  Points Matching.vcxproj -> C:\Users\xli22\documents\visual studio 2015\Projects\Points Matching\x64\Debug\Points Matching.exe
+﻿  main.cpp
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(101): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(102): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(103): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(104): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(109): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(115): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(158): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(164): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(199): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(206): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(321): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+c:\users\xli22\documents\visual studio 2015\projects\points matching\points matching\main.cpp(323): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+  Points Matching.vcxproj -> C:\Users\xli22\documents\visual studio 2015\Projects\Points Matching\x64\Debug\Points Matching.exe
   Points Matching.vcxproj -> C:\Users\xli22\documents\visual studio 2015\Projects\Points Matching\x64\Debug\Points Matching.pdb (Full PDB)
